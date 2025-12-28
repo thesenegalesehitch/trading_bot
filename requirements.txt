@@ -1,0 +1,133 @@
+# ============================================
+# Quantum Trading System - Dépendances Python
+# ============================================
+# Dernière mise à jour: Décembre 2024
+# Python requis: 3.12+ (recommandé: 3.13.1)
+# ============================================
+
+# === Core Data Processing ===
+pandas>=2.2.3              # DataFrame manipulation (released Sep 2024)
+numpy>=2.2.0               # Numerical computing (released Dec 2024)
+polars>=1.17.0             # Alternative DataFrame plus rapide (optional)
+
+# === Historical Data Sources ===
+yfinance>=0.2.50           # Yahoo Finance data
+alpha_vantage>=2.3.1       # Alpha Vantage API
+ccxt>=4.4.0                # 100+ crypto exchanges
+polygon-api-client>=1.14.0 # Polygon.io official client
+finnhub-python>=2.4.19     # Finnhub API
+fredapi>=0.5.2             # FRED economic data
+# MetaTrader5>=5.0.50      # Optionnel - Windows uniquement
+
+# === Technical Analysis ===
+pandas-ta>=0.3.14b         # 150+ indicators
+TA-Lib>=0.4.32             # C-based indicators (optional, faster)
+mplfinance>=0.12.10b0      # Financial charts
+
+# === Statistical & Mathematical ===
+scipy>=1.14.1              # Scientific computing (released Aug 2024)
+statsmodels>=0.14.4        # Statistical models
+arch>=7.2.0                # GARCH models for volatility
+
+# === Machine Learning - Core ===
+scikit-learn>=1.6.0        # ML library (released Dec 2024)
+xgboost>=2.1.3             # Gradient boosting (released Nov 2024)
+
+# === Machine Learning - Avancé ===
+lightgbm>=4.5.0            # Fast gradient boosting (released Jul 2024)
+catboost>=1.2.7            # Categorical boosting (latest stable)
+optuna>=4.1.0              # Bayesian optimization (released Dec 2024)
+shap>=0.46.0               # Explainable AI
+imbalanced-learn>=0.12.4   # Handle class imbalance
+
+# === Deep Learning (Optionnel) ===
+# tensorflow>=2.18.0       # TensorFlow (pour LSTM)
+# torch>=2.5.0             # PyTorch alternative
+# keras>=3.7.0             # High-level API
+
+# === Backtesting ===
+vectorbt>=0.26.2           # Vectorized backtesting
+backtesting>=0.3.3         # Simple backtesting alternative
+
+# === Web Scraping & API ===
+requests>=2.32.3           # HTTP requests
+beautifulsoup4>=4.12.3     # HTML parsing
+httpx>=0.28.1              # Async HTTP (faster)
+aiohttp>=3.11.0            # Async HTTP alternative
+
+# === Notifications ===
+python-telegram-bot>=21.8  # Telegram alerts
+discord-webhook>=1.3.0     # Discord alerts
+apprise>=1.9.0             # Multi-channel notifications
+
+# === Utilities ===
+python-dateutil>=2.9.0     # Date utilities
+pytz>=2024.2               # Timezone handling
+tqdm>=4.67.0               # Progress bars
+python-dotenv>=1.0.1       # Environment variables
+pydantic>=2.10.0           # Data validation
+pydantic-settings>=2.7.0   # Settings management
+rich>=13.9.0               # Beautiful terminal output
+colorama>=0.4.6            # Colored terminal output
+typer>=0.15.0              # CLI framework
+
+# === Visualization ===
+matplotlib>=3.9.0          # Static plots
+plotly>=5.24.0             # Interactive charts
+seaborn>=0.13.2            # Statistical graphics
+
+# === Dashboard (Optionnel) ===
+# flask>=3.1.0             # Web framework
+# dash>=2.18.0             # Plotly dashboard
+# streamlit>=1.41.0        # Easy dashboards
+# gradio>=5.9.0            # ML interfaces
+
+# === Database (Optionnel) ===
+# sqlalchemy>=2.0.36       # SQL toolkit
+# redis>=5.2.0             # Cache/Queue
+# pymongo>=4.10.0          # MongoDB
+
+# === Testing ===
+pytest>=8.3.0              # Testing framework
+pytest-cov>=6.0.0          # Coverage reports
+hypothesis>=6.120.0        # Property-based testing
+
+# === Code Quality ===
+ruff>=0.8.4                # Fast linter (replaces flake8/isort/black)
+mypy>=1.14.0               # Type checking
+
+
+# ============================================
+# INSTALLATION RAPIDE
+# ============================================
+#
+# 1. Installation standard:
+#    pip install -r requirements.txt
+#
+# 2. Installation avec ML avancé:
+#    pip install -r requirements.txt lightgbm catboost optuna shap
+#
+# 3. Installation complète (tout):
+#    pip install -r requirements.txt tensorflow torch streamlit
+#
+# 4. Vérifier les versions installées:
+#    pip list | grep -E "pandas|numpy|xgboost|scikit"
+#
+# ============================================
+# NOTES DE COMPATIBILITÉ
+# ============================================
+#
+# - Python 3.13: Toutes les libs sont compatibles
+# - Python 3.12: Recommandé pour stabilité maximale
+# - Python 3.11: Support complet, LTS
+# - Python 3.10: Support minimal, mise à jour recommandée
+#
+# - NumPy 2.x: Breaking changes depuis NumPy 1.x
+#   Si problèmes, utiliser: numpy>=1.26,<2.0
+#
+# - Pour TA-Lib: Installation système requise
+#   macOS: brew install ta-lib
+#   Ubuntu: apt-get install libta-lib-dev
+#   Windows: Télécharger DLL depuis ta-lib.org
+#
+# ============================================
