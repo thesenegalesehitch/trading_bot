@@ -28,6 +28,7 @@ mplfinance>=0.12.10b0      # Financial charts
 scipy>=1.14.1              # Scientific computing (released Aug 2024)
 statsmodels>=0.14.4        # Statistical models
 arch>=7.2.0                # GARCH models for volatility
+pyportfolioopt>=1.5.5      # Portfolio optimization
 
 # === Machine Learning - Core ===
 scikit-learn>=1.6.0        # ML library (released Dec 2024)
@@ -40,9 +41,12 @@ optuna>=4.1.0              # Bayesian optimization (released Dec 2024)
 shap>=0.46.0               # Explainable AI
 imbalanced-learn>=0.12.4   # Handle class imbalance
 
-# === Deep Learning (Optionnel) ===
+# === Deep Learning & NLP ===
+torch>=2.5.0               # PyTorch for ML/NLP
+transformers>=4.46.0       # Hugging Face transformers
+nltk>=3.9.1                # Natural Language Toolkit
+textblob>=0.18.0           # Simple NLP library
 # tensorflow>=2.18.0       # TensorFlow (pour LSTM)
-# torch>=2.5.0             # PyTorch alternative
 # keras>=3.7.0             # High-level API
 
 # === Backtesting ===
@@ -54,6 +58,7 @@ requests>=2.32.3           # HTTP requests
 beautifulsoup4>=4.12.3     # HTML parsing
 httpx>=0.28.1              # Async HTTP (faster)
 aiohttp>=3.11.0            # Async HTTP alternative
+uvloop>=0.21.0             # High-performance asyncio event loop
 
 # === Notifications ===
 python-telegram-bot>=21.8  # Telegram alerts
@@ -76,16 +81,22 @@ matplotlib>=3.9.0          # Static plots
 plotly>=5.24.0             # Interactive charts
 seaborn>=0.13.2            # Statistical graphics
 
+# === API Framework ===
+fastapi>=0.115.0           # Modern API framework
+uvicorn>=0.32.0            # ASGI server
+websockets>=13.1           # WebSocket support
+
 # === Dashboard (Optionnel) ===
 # flask>=3.1.0             # Web framework
 # dash>=2.18.0             # Plotly dashboard
 # streamlit>=1.41.0        # Easy dashboards
 # gradio>=5.9.0            # ML interfaces
 
-# === Database (Optionnel) ===
-# sqlalchemy>=2.0.36       # SQL toolkit
-# redis>=5.2.0             # Cache/Queue
-# pymongo>=4.10.0          # MongoDB
+# === Database ===
+sqlalchemy>=2.0.36        # SQL toolkit
+psycopg2-binary>=2.9.7    # PostgreSQL driver
+redis>=5.2.0              # Cache/Queue
+# pymongo>=4.10.0         # MongoDB (optionnel)
 
 # === Testing ===
 pytest>=8.3.0              # Testing framework
@@ -95,6 +106,11 @@ hypothesis>=6.120.0        # Property-based testing
 # === Code Quality ===
 ruff>=0.8.4                # Fast linter (replaces flake8/isort/black)
 mypy>=1.14.0               # Type checking
+
+# === Monitoring & Logging ===
+structlog>=24.1.0          # Structured logging
+sentry-sdk>=2.18.0         # Error monitoring
+prometheus-client>=0.21.0  # Metrics collection
 
 
 # ============================================
