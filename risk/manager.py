@@ -44,12 +44,12 @@ class RiskMetrics:
     """Métriques de risque calculées."""
     var_95: float
     var_99: float
+    volatility: float
+    max_drawdown: float
     cvar_95: Optional[float] = None
     cvar_99: Optional[float] = None
-    volatility: float
     sharpe_ratio: Optional[float] = None
     sortino_ratio: Optional[float] = None
-    max_drawdown: float
     beta: Optional[float] = None
     method: str = "historical"
     confidence_level: float = 0.95
@@ -187,12 +187,12 @@ class RiskManager:
         return RiskMetrics(
             var_95=var_value if confidence == 0.95 else var_value * 1.3,
             var_99=var_value * 1.3 if confidence == 0.95 else var_value,
+            volatility=volatility,
+            max_drawdown=max_drawdown,
             cvar_95=cvar_value if confidence == 0.95 else cvar_value * 1.3,
             cvar_99=cvar_value * 1.3 if confidence == 0.95 else cvar_value,
-            volatility=volatility,
             sharpe_ratio=sharpe_ratio,
             sortino_ratio=sortino_ratio,
-            max_drawdown=max_drawdown,
             method="historical",
             confidence_level=confidence,
             timestamp=datetime.utcnow()
@@ -231,10 +231,10 @@ class RiskManager:
         return RiskMetrics(
             var_95=var_value if confidence == 0.95 else var_value * 1.3,
             var_99=var_value * 1.3 if confidence == 0.95 else var_value,
-            cvar_95=cvar_value if confidence == 0.95 else cvar_value * 1.3,
-            cvar_99=cvar_value * 1.3 if confidence == 0.95 else cvar_value,
             volatility=volatility,
             max_drawdown=max_drawdown,
+            cvar_95=cvar_value if confidence == 0.95 else cvar_value * 1.3,
+            cvar_99=cvar_value * 1.3 if confidence == 0.95 else cvar_value,
             method="parametric",
             confidence_level=confidence,
             timestamp=datetime.utcnow()
@@ -276,10 +276,10 @@ class RiskManager:
         return RiskMetrics(
             var_95=var_value if confidence == 0.95 else var_value * 1.3,
             var_99=var_value * 1.3 if confidence == 0.95 else var_value,
-            cvar_95=cvar_value if confidence == 0.95 else cvar_value * 1.3,
-            cvar_99=cvar_value * 1.3 if confidence == 0.95 else cvar_value,
             volatility=volatility,
             max_drawdown=max_drawdown,
+            cvar_95=cvar_value if confidence == 0.95 else cvar_value * 1.3,
+            cvar_99=cvar_value * 1.3 if confidence == 0.95 else cvar_value,
             method="monte_carlo",
             confidence_level=confidence,
             timestamp=datetime.utcnow()
