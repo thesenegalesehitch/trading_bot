@@ -93,8 +93,7 @@ nltk>=3.9.1               # Natural language toolkit
 textblob>=0.18.0          # Simple NLP
 
 # === Risk Management ===
-pyportfolioopt>=1.5.5     # Portfolio optimization
-pypfopt>=1.5.5            # Alternative portfolio optimization
+# pyportfolioopt>=1.5.5   # Not compatible with Python 3.13, using custom implementation
 
 # === Monitoring & Logging ===
 structlog>=24.1.0         # Structured logging
