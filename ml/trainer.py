@@ -135,6 +135,7 @@ class EnsembleTrainer:
 
         def objective(trial):
             if model_name == 'xgboost':
+                from xgboost import XGBClassifier
                 params = {
                     'n_estimators': trial.suggest_int('n_estimators', 50, 300),
                     'max_depth': trial.suggest_int('max_depth', 3, 10),
