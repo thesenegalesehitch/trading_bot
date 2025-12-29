@@ -9,7 +9,12 @@ import json
 import re
 from textblob import TextBlob
 import nltk
-from transformers import pipeline
+try:
+    from transformers import pipeline
+    TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    TRANSFORMERS_AVAILABLE = False
+    pipeline = None
 import asyncio
 import aiohttp
 from dataclasses import dataclass
@@ -84,7 +89,7 @@ class SentimentAnalyzer:
         if self.textblob_analyzer is None:
             self.textblob_analyzer = TextBlob
 
-        if self.transformer_model is None:
+        if self.transformer_model is None and TRANSFORMERS_AVAILABLE:
             try:
                 # Utiliser un modèle léger pour l'analyse de sentiment
                 self.transformer_model = pipeline(
@@ -96,6 +101,9 @@ class SentimentAnalyzer:
             except Exception as e:
                 logger.warning(f"Impossible de charger le modèle Transformers: {e}")
                 self.transformer_model = None
+        elif not TRANSFORMERS_AVAILABLE:
+            logger.info("Transformers non disponible, utilisation de TextBlob uniquement")
+            self.transformer_model = None
 
     def analyze_text_sentiment(self, text: str, provider: SentimentProvider = SentimentProvider.TEXTBLOB) -> SentimentResult:
         """
