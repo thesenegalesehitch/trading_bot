@@ -85,6 +85,8 @@ seaborn>=0.13.2            # Statistical graphics
 fastapi>=0.115.0           # Modern API framework
 uvicorn>=0.32.0            # ASGI server
 websockets>=13.1           # WebSocket support
+python-jose[cryptography]>=3.3.0  # JWT tokens
+passlib[bcrypt]>=1.7.4     # Password hashing
 
 # === Dashboard (Optionnel) ===
 # flask>=3.1.0             # Web framework

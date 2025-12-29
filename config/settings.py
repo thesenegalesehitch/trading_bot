@@ -472,6 +472,9 @@ class SystemConfig:
     """Configuration système globale."""
     # Mode de fonctionnement
     MODE: str = "backtest"  # "backtest", "paper", "live"
+
+    # API
+    API_KEY: str = field(default_factory=lambda: os.getenv('API_KEY', 'quantum-trading-key-2025'))
     
     # Logging
     LOG_LEVEL: str = "INFO"
