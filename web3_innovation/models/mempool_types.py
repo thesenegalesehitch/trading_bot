@@ -269,12 +269,12 @@ class MempoolSignal:
     net_buy_pressure_usd: float  # Buy - Sell volume
     whale_count: int
     
-    # Signaux individuels
-    whale_alerts: List[WhaleAlert] = field(default_factory=list)
-    
     # Score final
     pressure_score: float  # -100 (bearish) to +100 (bullish)
     confidence: float
+    
+    # Signaux individuels (default factory)
+    whale_alerts: List[WhaleAlert] = field(default_factory=list)
     
     # Timestamps
     timestamp: datetime = field(default_factory=datetime.utcnow)
