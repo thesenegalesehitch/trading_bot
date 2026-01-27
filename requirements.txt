@@ -86,6 +86,11 @@ uvloop>=0.21.0            # Faster asyncio event loop
 # === Real-time & WebSocket ===
 websockets>=13.1          # WebSocket client/server
 
+# === Web3 & Blockchain ===
+web3>=6.15.0              # Ethereum interaction
+# solana>=0.30.0          # Solana interaction (optional)
+# solders>=0.20.0         # Solana data structures (optional)
+
 # === NLP & Sentiment ===
 transformers>=4.46.0      # Hugging Face transformers
 # torch>=2.0.0            # PyTorch for deep learning (install separately if needed for Python 3.13)
