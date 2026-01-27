@@ -1,5 +1,14 @@
+import logging
+import os
+from typing import Dict, Optional, List
 from quantum.infrastructure.db.secrets import get_secrets
 from quantum.shared.utils.resilience import GlobalLock, retry_async
+from quantum.domain.risk.circuit_breaker import CircuitBreaker
+from quantum.infrastructure.exchanges.binance_client import BinanceExchange
+from quantum.infrastructure.exchanges.ibkr_client import IBKRExchange
+from quantum.shared.config.settings import config
+
+logger = logging.getLogger(__name__)
 
 class ExecutionManager:
     """

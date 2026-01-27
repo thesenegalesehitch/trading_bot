@@ -5,6 +5,12 @@
 # Python requis: 3.12+ (recommandé: 3.13.1)
 # ============================================
 
+# === Transactional & Exchanges ===
+python-binance>=1.0.19     # Binance API
+ib-insync>=0.9.86          # Interactive Brokers
+tweepy>=4.14.0             # Twitter/X API
+ibapi>=9.81.1.1            # IBKR Native API
+
 # === Core Data Processing ===
 pandas>=2.2.3              # DataFrame manipulation (released Sep 2024)
 numpy>=2.2.0               # Numerical computing (released Dec 2024)
