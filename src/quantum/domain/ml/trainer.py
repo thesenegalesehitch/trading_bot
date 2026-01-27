@@ -550,26 +550,25 @@ class ModelTrainer:
         X_val: pd.DataFrame,
         y_val: pd.Series
     ) -> Dict:
-        """Entraîne un fold de CV."""
-        # Fit temporaire
-        clf.model.fit(X_train, y_train)
-        clf.is_trained = True
+        """Entraîne un fold de CV via le wrapper SignalClassifier."""
+        # Entraîner via le wrapper (gère le scaling local)
+        metrics = clf.train(X_train, y_train)
         
-        # Évaluer
-        train_acc = clf.model.score(X_train, y_train)
-        val_acc = clf.model.score(X_val, y_val)
+        # Évaluer sur validation (via predict_proba qui scale)
+        val_proba = clf.predict_proba(X_val)
+        val_pred = (val_proba >= 0.5).astype(int)
         
-        # AUC
-        from sklearn.metrics import roc_auc_score
+        from sklearn.metrics import accuracy_score, roc_auc_score
+        val_acc = accuracy_score(y_val, val_pred)
+        
         try:
-            val_proba = clf.model.predict_proba(X_val)[:, 1]
             auc = roc_auc_score(y_val, val_proba)
         except:
             auc = 0.5
         
         return {
             'accuracy': val_acc,
-            'train_accuracy': train_acc,
+            'train_accuracy': metrics['train_accuracy'],
             'auc': auc,
             'train_size': len(X_train),
             'val_size': len(X_val)

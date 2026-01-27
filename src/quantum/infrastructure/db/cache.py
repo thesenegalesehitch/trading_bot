@@ -17,22 +17,16 @@ class RedisCache:
     Implémente une stratégie de cache à plusieurs niveaux pour optimiser les performances.
     """
 
-    def __init__(self, host: str = 'localhost', port: int = 6379, db: int = 0,
+    def __init__(self, host: str = None, port: int = None, db: int = None,
                  password: Optional[str] = None, decode_responses: bool = False):
         """
-        Initialise la connexion Redis.
-
-        Args:
-            host: Hôte Redis
-            port: Port Redis
-            db: Numéro de base de données
-            password: Mot de passe Redis (optionnel)
-            decode_responses: Décoder automatiquement les réponses en chaînes
+        Initialise la connexion Redis via config globale si non spécifié.
         """
-        self.host = host
-        self.port = port
-        self.db = db
-        self.password = password
+        from quantum.shared.config.settings import config
+        self.host = host or config.data.REDIS_HOST
+        self.port = port or config.data.REDIS_PORT
+        self.db = db if db is not None else config.data.REDIS_DB
+        self.password = password or config.data.REDIS_PASSWORD
         self.decode_responses = decode_responses
 
         self.client = None
@@ -367,6 +361,14 @@ class RedisCache:
             Métriques ou None
         """
         return self.get('risk', portfolio_id)
+
+    def cache_web3_analysis(self, analysis_data: Dict, ttl: int = 10) -> bool:
+        """Met en cache l'analyse Web3 complète."""
+        return self.set('web3', 'current_analysis', analysis_data, ttl=ttl)
+
+    def get_web3_analysis(self) -> Optional[Dict]:
+        """Récupère l'analyse Web3 du cache."""
+        return self.get('web3', 'current_analysis')
 
     def invalidate_symbol_cache(self, symbol: str) -> int:
         """

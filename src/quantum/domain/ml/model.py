@@ -31,6 +31,7 @@ class SignalClassifier:
     """
     
     def __init__(self, model_params: Dict = None):
+        from sklearn.preprocessing import StandardScaler
         self.params = model_params or config.ml.XGBOOST_PARAMS
         self.min_threshold = config.ml.MIN_PROBABILITY_THRESHOLD
         self.strong_threshold = config.ml.STRONG_SIGNAL_THRESHOLD
@@ -47,23 +48,21 @@ class SignalClassifier:
         
         self.is_trained = False
         self.feature_names = []
+        self.scaler = StandardScaler()
     
     def train(self, X: pd.DataFrame, y: pd.Series) -> Dict:
         """
-        Entraîne le modèle.
-        
-        Args:
-            X: Features
-            y: Target
-        
-        Returns:
-            Métriques d'entraînement
+        Entraîne le modèle après avoir normalisé les features.
         """
         self.feature_names = list(X.columns)
         
+        # Normaliser
+        X_scaled = self.scaler.fit_transform(X)
+        X_scaled = pd.DataFrame(X_scaled, columns=self.feature_names)
+        
         # Séparer en train/validation
-        split_idx = int(len(X) * 0.8)
-        X_train, X_val = X.iloc[:split_idx], X.iloc[split_idx:]
+        split_idx = int(len(X_scaled) * 0.8)
+        X_train, X_val = X_scaled.iloc[:split_idx], X_scaled.iloc[split_idx:]
         y_train, y_val = y.iloc[:split_idx], y.iloc[split_idx:]
         
         # Entraîner
@@ -81,11 +80,8 @@ class SignalClassifier:
         # Évaluer
         train_acc = self.model.score(X_train, y_train)
         val_acc = self.model.score(X_val, y_val)
-        
-        # Prédictions probabilistes
         val_proba = self.model.predict_proba(X_val)[:, 1]
         
-        # Calcul AUC
         from sklearn.metrics import roc_auc_score
         try:
             auc = roc_auc_score(y_val, val_proba)
@@ -101,84 +97,62 @@ class SignalClassifier:
         }
     
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
-        """
-        Prédit la probabilité de succès.
-        
-        Returns:
-            Array de probabilités (0-1)
-        """
+        """Prédit les probabilités après normalisation."""
         if not self.is_trained:
             raise ValueError("Modèle non entraîné")
         
-        return self.model.predict_proba(X)[:, 1]
+        # Aligner et normaliser
+        X_active = X[self.feature_names]
+        X_scaled = self.scaler.transform(X_active)
+        
+        return self.model.predict_proba(X_scaled)[:, 1]
     
     def predict_signal(self, X: pd.DataFrame) -> Dict:
-        """
-        Génère un signal avec niveau de confiance.
-        
-        Args:
-            X: Features (une seule ligne pour temps réel)
-        
-        Returns:
-            Signal avec probabilité et recommandation
-        """
+        """Génère un signal avec niveau de confiance (inclut normalisation)."""
         proba = self.predict_proba(X)
         
         if len(proba) == 1:
             proba = proba[0]
         else:
-            proba = proba[-1]  # Dernière valeur
-        
+            proba = proba[-1]
+            
+        # Mapping logique signal
         if proba >= self.strong_threshold:
             signal = "STRONG_BUY"
-            action = "Entrer en position avec confiance élevée"
         elif proba >= self.min_threshold:
             signal = "BUY"
-            action = "Signal valide, confirmer avec d'autres indicateurs"
         elif proba <= 1 - self.strong_threshold:
             signal = "STRONG_AVOID"
-            action = "Éviter ce trade, probabilité d'échec élevée"
         elif proba <= 1 - self.min_threshold:
             signal = "AVOID"
-            action = "Probabilité de succès insuffisante"
         else:
             signal = "WAIT"
-            action = "Zone d'incertitude, attendre un meilleur setup"
-        
+            
         return {
             "signal": signal,
             "probability": proba * 100,
-            "action": action,
-            "threshold_met": proba >= self.min_threshold,
-            "is_strong": proba >= self.strong_threshold
+            "threshold_met": proba >= self.min_threshold
         }
     
-    def get_feature_importance(self) -> pd.DataFrame:
-        """Retourne l'importance des features."""
-        if not self.is_trained:
-            return pd.DataFrame()
-        
-        importance = self.model.feature_importances_
-        
-        return pd.DataFrame({
-            'feature': self.feature_names,
-            'importance': importance
-        }).sort_values('importance', ascending=False)
-    
     def save(self, path: str):
-        """Sauvegarde le modèle."""
+        """Sauvegarde modèle et metadata (scaler + features)."""
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'wb') as f:
             pickle.dump({
                 'model': self.model,
+                'scaler': self.scaler,
                 'feature_names': self.feature_names,
                 'is_trained': self.is_trained
             }, f)
     
     def load(self, path: str):
-        """Charge le modèle."""
+        """Charge le modèle complet."""
+        if not os.path.exists(path):
+            return
         with open(path, 'rb') as f:
             data = pickle.load(f)
             self.model = data['model']
+            self.scaler = data.get('scaler')
             self.feature_names = data['feature_names']
             self.is_trained = data['is_trained']
 

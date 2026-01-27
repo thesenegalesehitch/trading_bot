@@ -62,18 +62,10 @@ class MLFeaturesPreparer:
     
     def prepare_features(
         self,
-        df: pd.DataFrame,
-        fit: bool = False
+        df: pd.DataFrame
     ) -> pd.DataFrame:
         """
-        Prépare les features pour le ML.
-        
-        Args:
-            df: DataFrame avec toutes les colonnes
-            fit: Si True, fit le scaler
-        
-        Returns:
-            DataFrame avec features normalisées
+        Extrait et nettoie les features pour le ML.
         """
         # Sélectionner colonnes disponibles
         available = [c for c in self.feature_columns if c in df.columns]
@@ -83,20 +75,9 @@ class MLFeaturesPreparer:
         
         features = df[available].copy()
         
-        # Remplacer inf par NaN
+        # Nettoyage
         features = features.replace([np.inf, -np.inf], np.nan)
-        
-        # Forward fill puis backward fill
-        features = features.fillna(method='ffill').fillna(method='bfill')
-        
-        # Normalisation
-        if fit:
-            self.scaler.fit(features)
-            self.is_fitted = True
-        
-        if self.is_fitted:
-            scaled = self.scaler.transform(features)
-            features = pd.DataFrame(scaled, index=features.index, columns=available)
+        features = features.fillna(method='ffill').fillna(method='bfill').fillna(0)
         
         return features
     
@@ -107,16 +88,13 @@ class MLFeaturesPreparer:
         min_return: float = 0.001
     ) -> Tuple[pd.DataFrame, pd.Series]:
         """
-        Prépare X et y pour l'entraînement.
-        
-        Returns:
-            Tuple (features, target)
+        Prépare X et y (bruts) pour l'entraînement.
         """
         # Créer la cible
         target = self.create_target(df, forward_periods, min_return)
         
         # Préparer features
-        features = self.prepare_features(df, fit=True)
+        features = self.prepare_features(df)
         
         # Aligner et supprimer NaN
         valid_idx = target.notna() & ~features.isna().any(axis=1)

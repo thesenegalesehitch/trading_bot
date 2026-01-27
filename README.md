@@ -1,50 +1,41 @@
-# 🚀 Quantum Trading System
+# 🚀 Quantum Trading System v2.0 (Institutional Grade)
 
-> **Système de trading quantitatif haute précision pour EUR/USD, XAU/USD et crypto**
+> **Moteur de trading quantitatif haute performance unifiant Intelligence Technique, Machine Learning et On-Chain (Web3).**
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)
-
-## 📋 Table des Matières
-
-- [Présentation](#-présentation)
-- [Fonctionnalités](#-fonctionnalités)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Utilisation](#-utilisation)
-- [Architecture](#-architecture)
-- [Sources de Données](#-sources-de-données)
-- [Indicateurs et Analyses](#-indicateurs-et-analyses)
-- [Machine Learning](#-machine-learning)
-- [Gestion du Risque](#-gestion-du-risque)
-- [Alertes et Notifications](#-alertes-et-notifications)
-- [FAQ](#-faq)
+![Architecture](https://img.shields.io/badge/Architecture-Clean%20Institutional-orange.svg)
+![Status](https://img.shields.io/badge/Status-Alpha%20Unified-brightgreen.svg)
 
 ---
 
-## 🎯 Présentation
+## 🏛️ Vision & Architecture
 
-Le **Quantum Trading System** est un système de trading algorithmique complet qui combine:
+Le **Quantum Trading System v2** a été transformé d'une collection de scripts avancés en un moteur robuste suivant les principes de la **Clean Architecture**.
 
-- 📊 **Analyse statistique avancée** (Co-intégration, Hurst, Z-Score)
-- 📈 **Analyse technique multi-timeframe** (Ichimoku, SMC, Wyckoff)
-- 🤖 **Machine Learning** (Ensemble XGBoost + LightGBM + CatBoost)
-- 🛡️ **Gestion du risque robuste** (VaR, Kelly Criterion, Portfolio)
-- 🔔 **Alertes multi-canal** (Telegram, Discord, Email)
-
-### Points forts
-
-✅ **7+ sources de données gratuites** avec fallback automatique  
-✅ **Ensemble de modèles ML** avec calibration des probabilités  
-✅ **Backtesting Monte Carlo** avec 10,000+ simulations  
-✅ **Kelly Criterion dynamique** ajusté au drawdown  
-✅ **Détection automatique des divergences** RSI/MACD  
-✅ **Analyse Wyckoff** (accumulation/distribution)  
+- **Intelligence Unifiée (Alpha Engine)** : Fusion en temps réel des signaux techniques (Ichimoku, SMC, Wyckoff) et de l'intelligence On-Chain (Mempool Ethereum/Solana, Staking Sentiment).
+- **Performance Asynchrone** : Ordonnancement `asyncio` pour la collecte de données et parallélisation du scan multi-actifs.
+- **Optimisation Scientifique** : Allocation de portefeuille basée sur le modèle **Black-Litterman**, minimisant les corrélations indésirables.
 
 ---
 
-## ⚡ Fonctionnalités
+## ⚡ Innovations Majeures (v2.0)
+
+### 🧩 Alpha Engine Unifié
+Le `MultiCriteriaScorer` utilise désormais une pondération institutionnelle :
+- **Technique (30%)** : Ichimoku, SMC, Wyckoff, Divergences.
+- **Machine Learning (25%)** : Inférence temps réel via Ensemble (XGBoost/LightGBM).
+- **On-Chain Intelligence (20%)** : Pression Mempool, Cross-Chain Correlation Index (CCI).
+- **Statistique (15%)** : Co-intégration, Hurst, Z-Score.
+- **Risque (10%)** : Circuit Breaker actif, VaR.
+
+### 🚀 Performance & Scalabilité
+- **Cache Redis** : Réduction massive de la latence réseau en partageant les analyses Web3 entre les symboles.
+- **Async Orchestrator** : Traitement haute fréquence des flux de données.
+
+### 🖥️ Dashboard Institutionnel
+Visualisation temps réel via **Streamlit** pour un suivi précis de la santé du marché et du risque.
+
+---
 
 ### Sources de Données
 | Source | Type | Limite Gratuite |
@@ -167,163 +158,83 @@ MIN_PROBABILITY_THRESHOLD = 0.85  # 85%
 
 ---
 
-## 🚀 Utilisation
+## 🏗️ Structure du Projet
 
-### Commandes principales
-
-```bash
-# Analyser un symbole
-python main.py --mode analyze --symbol EURUSD=X
-
-# Générer un signal de trading
-python main.py --mode signal --symbol EURUSD=X
-
-# Exécuter un backtest
-python main.py --mode backtest --symbol EURUSD=X
-
-# Entraîner le modèle ML
-python main.py --mode train --symbol EURUSD=X
-
-# Analyser la corrélation EUR/USD vs Gold
-python main.py --mode correlation
-```
-
-### Forcer le téléchargement des données
-
-```bash
-python main.py --mode analyze --symbol EURUSD=X --download
-```
-
-### Exemples de code
-
-#### Analyse d'un symbole
-
-```python
-from main import QuantumTradingSystem
-
-# Initialiser le système
-system = QuantumTradingSystem()
-
-# Charger les données
-system.load_data("EURUSD=X")
-
-# Analyser
-analysis = system.analyze_symbol("EURUSD=X")
-print(f"Signal: {analysis['combined_signal']}")
-print(f"Confiance: {analysis['confidence']}%")
-```
-
-#### Utiliser le ML Ensemble
-
-```python
-from ml.ensemble import EnsembleClassifier, EnsembleConfig
-import pandas as pd
-
-# Configurer l'ensemble
-config = EnsembleConfig(
-    use_xgboost=True,
-    use_lightgbm=True,
-    use_catboost=True,
-    calibrate_probabilities=True
-)
-
-# Créer et entraîner
-ensemble = EnsembleClassifier(config)
-metrics = ensemble.train(X_train, y_train)
-
-# Prédire
-signal = ensemble.predict_signal(X_new)
-print(f"Signal: {signal['signal']}")
-print(f"Probabilité: {signal['probability']}%")
-```
-
-#### Calculer le Value at Risk
-
-```python
-from risk.var_calculator import VaRCalculator
-
-# Calculer le VaR
-var_calc = VaRCalculator(confidence_level=0.95, horizon_days=1)
-result = var_calc.calculate_monte_carlo_var(returns, portfolio_value=10000)
-
-print(f"VaR 95% 1 jour: ${result.var_value}")
-print(f"CVaR (Expected Shortfall): ${result.cvar}")
-```
-
-#### Envoyer des alertes
-
-```python
-from reporting.alerts import AlertManager, AlertLevel
-
-# Initialiser
-manager = AlertManager()
-
-# Envoyer un signal
-manager.send_signal(
-    symbol="EURUSD=X",
-    signal="BUY",
-    price=1.0850,
-    confidence=87.5,
-    stop_loss=1.0820,
-    take_profit=1.0920
-)
+```text
+src/quantum/
+├── domain/             # Logique métier pure (Logic, Models, Rules)
+│   ├── analysis/       # Ichimoku, SMC, Wyckoff, Divergences
+│   ├── core/           # Hurst, Cointegration, Scorer
+│   ├── ml/             # Trainer, Classifier, Features
+│   ├── risk/           # Portfolio (Black-Litterman), Circuit Breaker
+│   └── strategies/     # Multi-Strategy Engine
+├── application/        # Cas d'utilisation & Orchestration
+│   ├── backtest/       # Simulations & Monte-Carlo
+│   └── reporting/      # Alertes (Telegram, Discord), Scan Coordinator
+├── infrastructure/     # Détails techniques & Connecteurs
+│   ├── api/            # Serveur Fast API (optionnel)
+│   ├── db/             # Cache Redis, Database Migrations
+│   └── ui/             # Dashboard Streamlit
+└── shared/             # Utilitaires transverses
+    ├── config/         # Paramètres centralisés
+    ├── utils/          # Logger structuré
+    └── web3/           # Intelligence On-Chain (Oracle, Mempool)
 ```
 
 ---
 
-## 🏗️ Architecture
+## 🛠️ Utilisation Rapide
 
+### Installation
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+# Installer Redis pour le caching (optionnel mais recommandé)
 ```
-quantum_trading_system/
-│
-├── main.py                 # Point d'entrée principal
-├── requirements.txt        # Dépendances Python
-├── README.md              # Ce fichier
-│
-├── config/
-│   └── settings.py        # Configuration centralisée
-│
-├── data/
-│   ├── downloader.py      # Téléchargement des données
-│   ├── data_sources.py    # Sources multiples avec fallback
-│   ├── sentiment.py       # Analyse de sentiment
-│   ├── kalman_filter.py   # Lissage des prix
-│   └── feature_engine.py  # Création des features
-│
-├── core/
-│   ├── cointegration.py   # Analyse de co-intégration
-│   ├── hurst.py           # Exposant de Hurst
-│   └── zscore.py          # Z-Score de Bollinger
-│
-├── analysis/
-│   ├── ichimoku.py        # Analyse Ichimoku
-│   ├── smc.py             # Smart Money Concepts
-│   ├── wyckoff.py         # Analyse Wyckoff
-│   ├── divergences.py     # Détection des divergences
-│   └── multi_tf.py        # Multi-timeframe
-│
-├── ml/
-│   ├── model.py           # Classificateur signal
-│   ├── ensemble.py        # Ensemble de modèles
-│   ├── optimizer.py       # Optimisation bayésienne
-│   ├── features.py        # Préparation ML
-│   └── trainer.py         # Entraînement avec CV
-│
-├── risk/
-│   ├── manager.py         # Gestionnaire de risque
-│   ├── var_calculator.py  # Value at Risk
-│   ├── portfolio.py       # Gestion portefeuille
-│   ├── circuit_breaker.py # Arrêt d'urgence
-│   └── calendar.py        # Calendrier économique
-│
-├── backtest/
-│   ├── engine.py          # Moteur de backtest
-│   └── monte_carlo.py     # Simulation Monte Carlo
-│
-└── reporting/
-    ├── interface.py       # Affichage console
-    └── alerts.py          # Alertes multi-canal
+
+### Commandes AI-Ready
+```bash
+# Analyser un actif avec l'Alpha Engine complet
+python main.py --mode analyze --symbol BTC-USD
+
+# Lancer le scan multi-actifs parallèle
+python main.py --mode scan
+
+# Entraîner le modèle ML pour un symbole spécifique
+python main.py --mode train --symbol EURUSD=X
+
+# Lancer le Dashboard Streamlit
+streamlit run src/quantum/infrastructure/ui/dashboard.py
 ```
+
+---
+
+## 🛡️ Gestion du Risque : Black-Litterman
+Contrairement aux modèles classiques, notre optimiseur **Black-Litterman** combine l'équilibre du marché avec les "vues" propriétaires de notre Alpha Engine. 
+- **Rendement attendu** = Équilibre Marché + Confiance Alpha.
+- **Résultat** : Des tailles de positions plus stables et une protection contre les spikes de corrélation.
+
+---
+
+## 📡 Sources de Données
+Le système interroge dynamiquement :
+- **Yahoo Finance** : Historique large.
+- **Alpha Vantage & Polygon** : Flux temps réel.
+- **Web3 Engine** : Mempool Ethereum et Staking sentiment.
+
+---
+
+## 👨‍💻 Auteur & Licence
+**Alexandre Albert Ndour** - Concevoir l'avenir du trading quantique.
+MIT License - Copyright (c) 2026.
+
+---
+<p align="center">
+  <i>Propulsé par la fusion de l'intelligence humaine et artificielle.</i>
+</p>
+
+<!-- Fin du README v2.0 -->
 
 ---
 

@@ -339,6 +339,95 @@ class PortfolioManager:
             diversification_ratio=round(div_ratio, 3)
         )
     
+    def optimize_black_litterman(
+        self,
+        returns_dict: Dict[str, pd.Series],
+        views: Dict[str, float],
+        view_confidences: Dict[str, float],
+        tau: float = 0.05
+    ) -> PortfolioAllocation:
+        """
+        Optimisation Black-Litterman.
+        Combine l'équilibre du marché avec les vues (signaux) du système.
+        
+        Args:
+            returns_dict: Données historiques
+            views: Rendements attendus par actif (vues)
+            view_confidences: Confiance dans chaque vue (0-1)
+            tau: Scalaire d'incertitude du marché (défaut 0.05)
+        """
+        df = pd.DataFrame(returns_dict).dropna()
+        symbols = list(df.columns)
+        n = len(symbols)
+        
+        if n < 2:
+            return self.optimize_max_sharpe(returns_dict)
+            
+        # 1. Préparer les inputs
+        cov_matrix = df.cov() * 252
+        delta = 2.5 # Aversion au risque moyenne
+        
+        # Poids d'équilibre (Market Prior) - Ici équipondéré par défaut
+        w_eq = np.array([1/n] * n)
+        
+        # Pi: Rendements d'équilibre implicites
+        pi = delta * np.dot(cov_matrix, w_eq)
+        
+        # 2. Construire les matrices de vues P et Q
+        # Pour simplifier, chaque vue porte sur un seul actif
+        active_symbols = [s for s in symbols if s in views]
+        k = len(active_symbols)
+        
+        if k == 0:
+            return self.optimize_max_sharpe(returns_dict)
+            
+        P = np.zeros((k, n))
+        Q = np.zeros(k)
+        Omega = np.zeros((k, k))
+        
+        for i, symbol in enumerate(active_symbols):
+            idx = symbols.index(symbol)
+            P[i, idx] = 1
+            Q[i] = views[symbol]
+            # Incertitude de la vue (basée sur la confiance)
+            # Plus la confiance est haute, plus l'incertitude (Omega) est basse
+            conf = view_confidences.get(symbol, 0.5)
+            Omega[i, i] = cov_matrix.iloc[idx, idx] * (1 - conf) / (conf + 1e-6)
+            
+        # 3. Calculer les rendements combinés (E[R])
+        # Formule de Black-Litterman
+        tau_sigma_inv = np.linalg.inv(tau * cov_matrix)
+        p_omega_inv_p = np.dot(P.T, np.dot(np.linalg.inv(Omega), P))
+        
+        first_term = np.linalg.inv(tau_sigma_inv + p_omega_inv_p)
+        second_term = np.dot(tau_sigma_inv, pi) + np.dot(P.T, np.dot(np.linalg.inv(Omega), Q))
+        
+        er = np.dot(first_term, second_term)
+        
+        # 4. Optimiser les poids avec les nouveaux rendements attendus
+        def objective(w):
+            port_return = np.dot(w, er)
+            port_vol = np.sqrt(np.dot(w.T, np.dot(cov_matrix, w)))
+            return -(port_return / port_vol) if port_vol > 0 else 0
+
+        constraints = [{'type': 'eq', 'fun': lambda x: np.sum(x) - 1}]
+        bounds = [(self.min_weight, self.max_weight) for _ in range(n)]
+        
+        result = minimize(objective, w_eq, method='SLSQP', bounds=bounds, constraints=constraints)
+        optimal_weights = result.x
+        
+        # Métriques
+        port_return = np.dot(optimal_weights, er)
+        port_vol = np.sqrt(np.dot(optimal_weights.T, np.dot(cov_matrix, optimal_weights)))
+        
+        return PortfolioAllocation(
+            weights={s: round(w, 4) for s, w in zip(symbols, optimal_weights)},
+            expected_return=round(port_return * 100, 2),
+            expected_volatility=round(port_vol * 100, 2),
+            sharpe_ratio=round(port_return / port_vol if port_vol > 0 else 0, 3),
+            diversification_ratio=1.0 # Placeholder
+        )
+
     def check_rebalance_needed(
         self,
         current_weights: Dict[str, float],

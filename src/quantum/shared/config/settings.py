@@ -252,9 +252,15 @@ class DataConfig:
     EXTRACT_DAY_OF_WEEK: bool = True
     EXTRACT_MONTH: bool = True
     
-    # Cache local
+    # Cache local et Redis
     CACHE_ENABLED: bool = True
     CACHE_EXPIRY_HOURS: int = 48
+    
+    # Redis
+    REDIS_HOST: str = field(default_factory=lambda: os.getenv('REDIS_HOST', 'localhost'))
+    REDIS_PORT: int = field(default_factory=lambda: int(os.getenv('REDIS_PORT', 6379)))
+    REDIS_DB: int = field(default_factory=lambda: int(os.getenv('REDIS_DB', 0)))
+    REDIS_PASSWORD: str = field(default_factory=lambda: os.getenv('REDIS_PASSWORD', ''))
 
 
 @dataclass

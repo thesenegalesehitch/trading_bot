@@ -98,10 +98,27 @@ class QuantumTradingSystem:
         onchain = self.web3_engine.get_current_analysis()
         
         wyckoff_result = self.wyckoff_analyzer.analyze(df)
+        
+        # ML Inference
+        ml_results = {'probability': 0.5}
+        try:
+            # Tenter de charger le modèle pour ce symbole s'il n'est pas déjà prêt
+            model_path = os.path.join(config.system.MODEL_DIR, f"{symbol}_model.pkl")
+            if not self.ml_trainer.classifier.is_trained and os.path.exists(model_path):
+                self.ml_trainer.load_model(model_path)
+            
+            if self.ml_trainer.classifier.is_trained:
+                features_df = self.ml_trainer.preparer.prepare_features(df.tail(10))
+                proba = self.ml_trainer.classifier.predict_proba(features_df.tail(1))
+                ml_results['probability'] = float(proba[0])
+        except Exception as e:
+            self.logger.debug("Inférence ML non disponible", symbol=symbol, error=str(e))
+
         analysis = {
             'symbol': symbol,
             'price': df['Close'].iloc[-1],
             'onchain_data': onchain,
+            'ml_results': ml_results,
             'hurst_value': self.hurst_calc.calculate(df['Close']),
             'zscore_data': self.zscore_calc.get_current_status(df['Close']),
             'ichimoku_data': self.ichimoku.get_signal(df),
@@ -123,7 +140,7 @@ class QuantumTradingSystem:
             'divergence': analysis['divergence_data'].get('signal'),
             'wyckoff_phase': analysis['wyckoff_phase']
         }
-        ml = {} # ML prediction would go here
+        ml = analysis.get('ml_results', {})
         stat = {
             'zscore': analysis['zscore_data'].get('zscore'), 
             'hurst': analysis['hurst_value']

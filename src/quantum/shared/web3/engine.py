@@ -524,27 +524,17 @@ class Web3IntelligenceEngine:
     
     def get_current_analysis(self) -> Dict[str, Any]:
         """
-        Retourne l'analyse Web3 courante.
-        
-        DESCRIPTION:
-        ============
-        Agrège les données de tous les analyseurs en un
-        dictionnaire utilisable par le système de trading.
-        
-        Returns:
-            Dictionnaire avec les analyses Web3
-            
-        USAGE:
-        ======
-        ```python
-        web3_data = engine.get_current_analysis()
-        
-        # Utiliser dans votre logique de trading
-        if web3_data['mempool_pressure'] > 50:
-            # Forte pression acheteuse détectée
-            pass
-        ```
+        Retourne l'analyse Web3 courante, avec mise en cache Redis.
         """
+        from quantum.infrastructure.db.cache import get_cache
+        cache = get_cache()
+        
+        # 1. Tenter de récupérer du cache
+        cached_analysis = cache.get_web3_analysis()
+        if cached_analysis:
+            return cached_analysis
+
+        # 2. Calculer l'analyse réelle
         analysis = {
             'timestamp': datetime.utcnow().isoformat(),
             'is_active': self._running,
@@ -591,6 +581,9 @@ class Web3IntelligenceEngine:
                     'sell_pressure': sol_sentiment.sell_pressure_probability if sol_sentiment else None,
                 },
             }
+        
+        # 3. Mettre en cache (TTL court de 10s car les données Web3 bougent vite)
+        cache.cache_web3_analysis(analysis, ttl=10)
         
         return analysis
     
