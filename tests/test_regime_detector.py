@@ -9,9 +9,9 @@ from datetime import datetime
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.regime_detector import (
+
+from quantum.domain.core.regime_detector import (
     RegimeDetector,
     MarketRegime,
     RegimeAnalysis

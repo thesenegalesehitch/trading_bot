@@ -9,9 +9,9 @@ from datetime import datetime
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from strategies.multi_strategy import (
+
+from quantum.domain.strategies.multi_strategy import (
     MultiStrategyEngine,
     TrendFollowingStrategy,
     MeanReversionStrategy,
@@ -19,7 +19,7 @@ from strategies.multi_strategy import (
     SignalType,
     TradeSignal
 )
-from core.regime_detector import MarketRegime
+from quantum.domain.core.regime_detector import MarketRegime
 
 
 class TestBaseStrategies:

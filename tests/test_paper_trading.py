@@ -9,9 +9,9 @@ from datetime import datetime, timedelta
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backtest.paper_trading import (
+
+from quantum.application.backtest.paper_trading import (
     PaperTradingSimulator,
     Order,
     Position,

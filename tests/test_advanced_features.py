@@ -8,13 +8,13 @@ import asyncio
 from datetime import datetime, timedelta
 
 # Import des modules à tester
-from ml.service import MLService
-from analysis.intermarket import InterMarketAnalyzer
-from data.realtime import RealTimeDataManager, DataProvider
-from data.sentiment import SentimentAnalyzer, SentimentProvider
-from risk.manager import RiskManager, VaRMethod
-from db.cache import RedisCache
-from api.main import app
+from quantum.domain.ml.service import MLService
+from quantum.domain.analysis.intermarket import InterMarketAnalyzer
+from quantum.domain.data.realtime import RealTimeDataManager, DataProvider
+from quantum.domain.data.sentiment import SentimentAnalyzer, SentimentProvider
+from quantum.domain.risk.manager import RiskManager, VaRMethod
+from quantum.infrastructure.db.cache import RedisCache
+from quantum.infrastructure.api.main import app
 from fastapi.testclient import TestClient
 
 class TestMLService:
