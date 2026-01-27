@@ -45,9 +45,13 @@ class CircuitBreaker:
         self.current_capital = self.initial_capital
         self.peak_capital = self.initial_capital
         self.trade_history: List[TradeRecord] = []
-        self.is_active = True
+        self._is_active = True
         self.halt_reason: Optional[str] = None
         self.halt_until: Optional[datetime] = None
+    
+    def is_active(self) -> bool:
+        """Indique si le circuit breaker est actif (trading autorisé)."""
+        return self._is_active
     
     def record_trade(self, pnl: float, timestamp: datetime = None):
         """
@@ -121,7 +125,7 @@ class CircuitBreaker:
     
     def _halt(self, reason: str, duration_hours: int = 24):
         """Arrête le trading."""
-        self.is_active = False
+        self._is_active = False
         self.halt_reason = reason
         self.halt_until = datetime.now() + timedelta(hours=duration_hours)
         print(f"⛔ CIRCUIT BREAKER: {reason}")
@@ -135,11 +139,11 @@ class CircuitBreaker:
             Dict avec status et raison
         """
         # Vérifier si le halt a expiré
-        if not self.is_active and self.halt_until:
+        if not self._is_active and self.halt_until:
             if datetime.now() > self.halt_until:
                 self.reset()
         
-        if not self.is_active:
+        if not self._is_active:
             return {
                 "allowed": False,
                 "reason": self.halt_reason,
@@ -161,7 +165,7 @@ class CircuitBreaker:
     
     def reset(self):
         """Réinitialise le circuit breaker."""
-        self.is_active = True
+        self._is_active = True
         self.halt_reason = None
         self.halt_until = None
         print("✅ Circuit Breaker réinitialisé")
@@ -169,7 +173,7 @@ class CircuitBreaker:
     def get_status(self) -> Dict:
         """Retourne le statut complet."""
         return {
-            "is_active": self.is_active,
+            "is_active": self._is_active,
             "current_capital": self.current_capital,
             "initial_capital": self.initial_capital,
             "peak_capital": self.peak_capital,

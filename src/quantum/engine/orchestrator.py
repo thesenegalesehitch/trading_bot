@@ -97,16 +97,17 @@ class QuantumTradingSystem:
         
         onchain = self.web3_engine.get_current_analysis()
         
+        wyckoff_result = self.wyckoff_analyzer.analyze(df)
         analysis = {
             'symbol': symbol,
             'price': df['Close'].iloc[-1],
-            'onchain': onchain,
-            'hurst': self.hurst_calc.calculate(df['Close']),
-            'zscore': self.zscore_calc.get_current_status(df['Close']),
-            'ichimoku': self.ichimoku.get_signal(df),
-            'smc': self.smc_analyzer.analyze(df)['current_analysis'],
-            'divergence': self.divergence_detector.get_divergence_signal(df),
-            'wyckoff': self.wyckoff_analyzer.analyze(df).phase
+            'onchain_data': onchain,
+            'hurst_value': self.hurst_calc.calculate(df['Close']),
+            'zscore_data': self.zscore_calc.get_current_status(df['Close']),
+            'ichimoku_data': self.ichimoku.get_signal(df),
+            'smc_data': self.smc_analyzer.analyze(df)['current_analysis'],
+            'divergence_data': self.divergence_detector.get_divergence_signal(df),
+            'wyckoff_phase': wyckoff_result.phase.value
         }
         
         score = self._compute_unified_score(analysis)
@@ -117,12 +118,19 @@ class QuantumTradingSystem:
 
     def _compute_unified_score(self, analysis):
         # Data mapping for scorer
-        tech = {'kumo_position': analysis['ichimoku'].get('kumo_position'), 'divergence': analysis['divergence']}
+        tech = {
+            'kumo_position': analysis['ichimoku_data'].get('kumo_position'), 
+            'divergence': analysis['divergence_data'].get('signal'),
+            'wyckoff_phase': analysis['wyckoff_phase']
+        }
         ml = {} # ML prediction would go here
-        stat = {'zscore': analysis['zscore'].get('zscore'), 'hurst': analysis['hurst']}
-        risk = {'circuit_breaker': self.circuit_breaker.is_active()}
+        stat = {
+            'zscore': analysis['zscore_data'].get('zscore'), 
+            'hurst': analysis['hurst_value']
+        }
+        risk = {'circuit_breaker_active': self.circuit_breaker.is_active()}
         
-        return self.scorer.calculate_score(tech, ml, analysis['onchain'], stat, risk)
+        return self.scorer.calculate_score(tech, ml, analysis['onchain_data'], stat, risk)
 
     def scan_all_symbols(self):
         self.logger.info("Scanning Market...")
