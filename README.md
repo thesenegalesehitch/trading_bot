@@ -1,39 +1,40 @@
-# 🚀 Quantum Trading System v2.0 (Institutional Grade)
+# 🚀 Quantum Trading System v3.0 (Autonomous Grade)
 
-> **Moteur de trading quantitatif haute performance unifiant Intelligence Technique, Machine Learning et On-Chain (Web3).**
+> **Moteur de trading autonome unifiant Intelligence Technique, Machine Learning, On-Chain et Psychologie Sociale (Twitter/X).**
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20Institutional-orange.svg)
-![Status](https://img.shields.io/badge/Status-Alpha%20Unified-brightgreen.svg)
+![Status](https://img.shields.io/badge/Status-Autonomous%20Live-brightgreen.svg)
 
 ---
 
 ## 🏛️ Vision & Architecture
 
-Le **Quantum Trading System v2** a été transformé d'une collection de scripts avancés en un moteur robuste suivant les principes de la **Clean Architecture**.
+Le **Quantum Trading System v3** franchit l'étape de l'autonomie. Il ne se contente plus d'analyser, il exécute sur les marchés mondiaux tout en capturant le pouls psychologique des réseaux sociaux.
 
-- **Intelligence Unifiée (Alpha Engine)** : Fusion en temps réel des signaux techniques (Ichimoku, SMC, Wyckoff) et de l'intelligence On-Chain (Mempool Ethereum/Solana, Staking Sentiment).
-- **Performance Asynchrone** : Ordonnancement `asyncio` pour la collecte de données et parallélisation du scan multi-actifs.
-- **Optimisation Scientifique** : Allocation de portefeuille basée sur le modèle **Black-Litterman**, minimisant les corrélations indésirables.
+- **Intelligence Totale (Alpha Engine v3)** : Intégration du sentiment social (Twitter/X) pour anticiper les mouvements de foule.
+- **Exécution Native (Live Bridge)** : Connecteurs directs vers **Binance** (Crypto) et **Interactive Brokers** (Forex/Futures) pour un trading sans intermédiaire.
+- **Garde-fous Institutionnels** : `ExecutionManager` couplé au `CircuitBreaker` pour une sécurité transactionnelle maximale.
 
 ---
 
-## ⚡ Innovations Majeures (v2.0)
+## ⚡ Innovations Majeures (v3.0)
 
-### 🧩 Alpha Engine Unifié
-Le `MultiCriteriaScorer` utilise désormais une pondération institutionnelle :
-- **Technique (30%)** : Ichimoku, SMC, Wyckoff, Divergences.
-- **Machine Learning (25%)** : Inférence temps réel via Ensemble (XGBoost/LightGBM).
-- **On-Chain Intelligence (20%)** : Pression Mempool, Cross-Chain Correlation Index (CCI).
-- **Statistique (15%)** : Co-intégration, Hurst, Z-Score.
-- **Risque (10%)** : Circuit Breaker actif, VaR.
+### 🧩 Alpha Engine v3.0
+Pondération de décision mise à jour :
+- **Technique (25%)** : Ichimoku, SMC, Wyckoff.
+- **Machine Learning (20%)** : XGBoost / LightGBM.
+- **On-Chain Intelligence (20%)** : Mempool, Whale Alerts.
+- **IA Sociale (15%)** : Sentiment Twitter/X en temps réel. [NEW]
+- **Statistique (10%)** : Co-intégration, Hurst.
+- **Risque (10%)** : Black-Litterman Sizing.
 
-### 🚀 Performance & Scalabilité
-- **Cache Redis** : Réduction massive de la latence réseau en partageant les analyses Web3 entre les symboles.
-- **Async Orchestrator** : Traitement haute fréquence des flux de données.
+### 🏦 Connectivité Transactionnelle
+- **Binance API** : Support Spot/Testnet pour la crypto.
+- **IBKR (ib_insync)** : Exécution Forex/Or via TWS/Gateway.
 
-### 🖥️ Dashboard Institutionnel
-Visualisation temps réel via **Streamlit** pour un suivi précis de la santé du marché et du risque.
+### 🖥️ Dashboard v3
+Visualisation des flux de sentiment Twitter et monitoring des ordres réels exécutés.
 
 ---
 

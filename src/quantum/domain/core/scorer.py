@@ -42,14 +42,15 @@ class TradingScore:
 class MultiCriteriaScorer:
     def __init__(self, custom_weights: Dict[str, float] = None):
         self.category_weights = custom_weights or {
-            'technical': 0.30,
-            'ml': 0.25,
+            'technical': 0.25,
+            'ml': 0.20,
             'onchain': 0.20,
-            'statistical': 0.15,
+            'social': 0.15,
+            'statistical': 0.10,
             'risk': 0.10
         }
     
-    def calculate_score(self, technical_data, ml_data, onchain_data, statistical_data, risk_data=None) -> TradingScore:
+    def calculate_score(self, technical_data, ml_data, onchain_data, statistical_data, social_data=None, risk_data=None) -> TradingScore:
         components = [
             self._calculate_technical_score(technical_data),
             self._calculate_ml_score(ml_data),
@@ -57,12 +58,22 @@ class MultiCriteriaScorer:
             self._calculate_statistical_score(statistical_data),
         ]
         
+        if social_data:
+            components.append(self._calculate_social_score(social_data))
+        else:
+            components.append(ScoreComponent("social", 50, self.category_weights['social'], "neutral"))
+
         if risk_data:
             components.append(self._calculate_risk_score(risk_data))
         else:
             components.append(ScoreComponent("risk", 50, self.category_weights['risk'], "neutral"))
             
         return self._compute_final_score(components)
+
+    def _calculate_social_score(self, data: Dict) -> ScoreComponent:
+        score = data.get('score', 50)
+        direction = "bullish" if score >= 60 else "bearish" if score <= 40 else "neutral"
+        return ScoreComponent("social", score, self.category_weights['social'], direction)
 
     def _calculate_onchain_score(self, data: Dict) -> ScoreComponent:
         score = 50

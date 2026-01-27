@@ -37,10 +37,14 @@ from quantum.domain.risk.calendar import EconomicCalendar
 from quantum.application.backtest.engine import BacktestEngine
 
 
+from quantum.domain.analysis.social_sentiment import SocialSentimentAnalyzer
+from quantum.application.execution.service import ExecutionManager
+
+
 class QuantumTradingSystem:
     def __init__(self):
         self.logger = get_logger("quantum.engine")
-        self.logger.info("Initializing Quantum Trading System...")
+        self.logger.info("Initializing Quantum Trading System v3...")
 
         # Data
         self.downloader = DataDownloader()
@@ -56,6 +60,7 @@ class QuantumTradingSystem:
         self.ichimoku = IchimokuAnalyzer()
         self.divergence_detector = DivergenceDetector()
         self.wyckoff_analyzer = WyckoffAnalyzer()
+        self.social_analyzer = SocialSentimentAnalyzer()
         
         # ML & Scorer
         self.ml_trainer = ModelTrainer()
@@ -64,9 +69,10 @@ class QuantumTradingSystem:
         # Web3 Engine
         self.web3_engine = Web3IntelligenceEngine(mode=IntegrationMode.ENRICHMENT)
         
-        # Risk & Interface
+        # Risk, Interface & Execution
         self.risk_manager = RiskManager()
         self.circuit_breaker = CircuitBreaker()
+        self.execution_manager = ExecutionManager(self.circuit_breaker)
         self.calendar = EconomicCalendar()
         self.interface = TradingInterface()
         self.scan_coordinator = ScanCoordinator(self)
@@ -90,19 +96,21 @@ class QuantumTradingSystem:
         self.data[symbol] = df
         return df
 
-    def analyze_symbol(self, symbol: str):
+    async def analyze_symbol(self, symbol: str):
         if symbol not in self.data: self.load_data(symbol)
         df = self.data.get(symbol)
         if df is None or df.empty: return {"error": "no data"}
         
+        # 1. On-Chain & Social Intelligence
         onchain = self.web3_engine.get_current_analysis()
+        social = self.social_analyzer.analyze_asset(symbol)
         
+        # 2. Tech & Wyckoff
         wyckoff_result = self.wyckoff_analyzer.analyze(df)
         
-        # ML Inference
+        # 3. ML Inference
         ml_results = {'probability': 0.5}
         try:
-            # Tenter de charger le modèle pour ce symbole s'il n'est pas déjà prêt
             model_path = os.path.join(config.system.MODEL_DIR, f"{symbol}_model.pkl")
             if not self.ml_trainer.classifier.is_trained and os.path.exists(model_path):
                 self.ml_trainer.load_model(model_path)
@@ -118,6 +126,7 @@ class QuantumTradingSystem:
             'symbol': symbol,
             'price': df['Close'].iloc[-1],
             'onchain_data': onchain,
+            'social_data': social,
             'ml_results': ml_results,
             'hurst_value': self.hurst_calc.calculate(df['Close']),
             'zscore_data': self.zscore_calc.get_current_status(df['Close']),
@@ -127,10 +136,17 @@ class QuantumTradingSystem:
             'wyckoff_phase': wyckoff_result.phase.value
         }
         
+        # 4. Score Unifié
         score = self._compute_unified_score(analysis)
         analysis['combined_signal'] = score.direction
         analysis['confidence'] = score.confidence * 100
         
+        # 5. Tentative d'Auto-Exécution (Live Trading)
+        if analysis['confidence'] >= 85 and score.direction in ["BUY", "SELL"]:
+            await self.execution_manager.execute_signal(
+                symbol, score.direction, analysis['confidence'], analysis['price']
+            )
+            
         return analysis
 
     def _compute_unified_score(self, analysis):
@@ -145,9 +161,10 @@ class QuantumTradingSystem:
             'zscore': analysis['zscore_data'].get('zscore'), 
             'hurst': analysis['hurst_value']
         }
+        social = analysis.get('social_data')
         risk = {'circuit_breaker_active': self.circuit_breaker.is_active()}
         
-        return self.scorer.calculate_score(tech, ml, analysis['onchain_data'], stat, risk)
+        return self.scorer.calculate_score(tech, ml, analysis['onchain_data'], stat, social, risk)
 
     def scan_all_symbols(self):
         self.logger.info("Scanning Market...")

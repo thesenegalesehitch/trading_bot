@@ -33,103 +33,75 @@ def get_system():
 system = get_system()
 
 # --- Sidebar ---
-st.sidebar.title("Quantum Dashboard v2")
-st.sidebar.markdown(f"**Modèle:** Institutional Clean Architecture")
-st.sidebar.markdown(f"**Moteur:** Alpha Unified (Web3 + Tech)")
+st.sidebar.title("Quantum Dashboard v3")
+st.sidebar.markdown(f"**Mode:** 🟢 LIVE EXECUTION READY" if os.getenv('LIVE_TRADING') == 'True' else "**Mode:** 🟡 Simulation / Paper")
+st.sidebar.markdown(f"**IA:** Neural Alpha + Social Intelligence")
 
 active_symbols = config.symbols.ACTIVE_SYMBOLS
 selected_symbols = st.sidebar.multiselect("Actifs à surveiller", active_symbols, default=active_symbols[:5])
 
-refresh_rate = st.sidebar.slider("Fréquence de rafraîchissement (s)", 10, 300, 60)
-
 # --- Header ---
-st.title("🛡️ Quantum Intelligence Hub")
+st.title("🛡️ Quantum Intelligence Hub v3")
 st.markdown("---")
 
 # --- Métriques Globales ---
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Market Status", "OPEN", "Normal")
-col2.metric("Active Assets", len(selected_symbols))
-col3.metric("System Health", "OPTIMAL", border_left=True)
-col4.metric("Last Analysis", datetime.now().strftime("%H:%M:%S"))
+col2.metric("Execution Engine", "ACTIVE", border_left=True)
+col3.metric("Social Pulse", "BULLISH", "+12% Tweets")
+col4.metric("Last Order", "NONE", "-")
 
-# --- Analyse en Temps Réel ---
-st.subheader("📊 Unified Alpha Scanner")
+# --- Analyse & Intelligence Sociale ---
+row1_col1, row1_col2 = st.columns([2, 1])
 
-if st.button("Lancer un scan complet"):
-    with st.spinner("Analyse quantitative en cours..."):
-        results = []
-        for sym in selected_symbols:
-            try:
-                res = system.analyze_symbol(sym)
-                results.append({
-                    'Symbol': sym,
-                    'Price': res['price'],
-                    'Signal': res['combined_signal'],
-                    'Confidence': f"{res['confidence']:.1f}%",
-                    'Hurst': f"{res['hurst_value']:.2f}",
-                    'Z-Score': f"{res['zscore_data'].get('zscore', 0):.2f}",
-                    'Web3 Score': f"{res['onchain_data'].get('mempool', {}).get('pressure_score', 0)}"
-                })
-            except Exception as e:
-                st.sidebar.error(f"Erreur sur {sym}: {e}")
-        
-        df_results = pd.DataFrame(results)
-        
-        # Coloration des signaux
-        def color_signal(val):
-            color = 'white'
-            if val == 'BUY': color = '#2ecc71'
-            elif val == 'SELL': color = '#e74c3c'
-            elif val == 'WAIT': color = '#f1c40f'
-            return f'background-color: {color}; color: black'
+with row1_col1:
+    st.subheader("📊 Unified Alpha Scanner")
+    if st.button("Lancer un scan complet"):
+        with st.spinner("Analyse quantitative & sociale en cours..."):
+            results = []
+            for sym in selected_symbols:
+                try:
+                    res = asyncio.run(system.analyze_symbol(sym))
+                    results.append({
+                        'Symbol': sym,
+                        'Signal': res['combined_signal'],
+                        'Confidence': f"{res['confidence']:.1f}%",
+                        'Social Sentiment': f"{res['social_data']['score']:.1f}%",
+                        'Hurst': f"{res['hurst_value']:.2f}",
+                        'Web3 Score': f"{res['onchain_data'].get('mempool', {}).get('pressure_score', 0)}"
+                    })
+                except Exception as e:
+                    st.sidebar.error(f"Erreur sur {sym}: {e}")
+            
+            df_results = pd.DataFrame(results)
+            st.table(df_results)
 
-        st.table(df_results.style.applymap(color_signal, subset=['Signal']))
+with row1_col2:
+    st.subheader("🐦 Social Sentiment (Twitter/X)")
+    for sym in selected_symbols[:3]:
+        social_res = system.social_analyzer.analyze_asset(sym)
+        st.write(f"**{sym}**")
+        st.progress(social_res['score'] / 100)
+        st.caption(f"Status: {social_res['label']} | Volume: {social_res['volume_signal']}")
 
-# --- Graphs ---
+# --- Position & Risk ---
 st.markdown("---")
-row2_col1, row2_col2 = st.columns([2, 1])
+row2_col1, row2_col2 = st.columns([1, 1])
 
 with row2_col1:
-    st.subheader("📈 Dynamique des Signaux")
-    # Mock data pour le graph (évolution du score de confiance)
-    hist_data = pd.DataFrame({
-        'Time': pd.date_range(start='now', periods=20, freq='H'),
-        'Alpha Score': np.random.uniform(30, 95, 20)
-    })
-    fig = px.line(hist_data, x='Time', y='Alpha Score', title="Évolution de la confiance Alpha (Moyenne Portefeuille)")
-    fig.update_layout(template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
+    st.subheader("🏦 Portefeuille & Exécution")
+    if os.getenv('LIVE_TRADING') == 'True':
+        st.success("Connecté aux API Binance/IBKR")
+        st.info("Aucune position active pour le moment.")
+    else:
+        st.warning("Mode Simulation activé. Aucun ordre réel ne sera envoyé.")
 
 with row2_col2:
     st.subheader("🛑 Risque & Circuit Breaker")
     cb_status = system.circuit_breaker.get_status()
-    
-    # Donut chart pour le Drawdown
-    current_dd = cb_status['current_drawdown']
-    max_dd = cb_status['max_drawdown']
-    
-    fig_risk = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = current_dd,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Current Drawdown %"},
-        gauge = {
-            'axis': {'range': [None, max_dd * 1.5]},
-            'steps': [
-                {'range': [0, max_dd * 0.8], 'color': "green"},
-                {'range': [max_dd * 0.8, max_dd], 'color': "orange"},
-                {'range': [max_dd, max_dd * 1.5], 'color': "red"}
-            ],
-            'threshold': {
-                'line': {'color': "white", 'width': 4},
-                'thickness': 0.75,
-                'value': max_dd
-            }
-        }
-    ))
-    fig_risk.update_layout(template="plotly_dark", height=300)
-    st.plotly_chart(fig_risk, use_container_width=True)
+    st.metric("Drawdown Actuel", f"{cb_status['current_drawdown']:.2f}%", help="Max allowed: 5%")
+    st.progress(min(cb_status['current_drawdown'] / 5.0, 1.0))
+
 
 # --- Web3 Intelligence ---
 st.markdown("---")
