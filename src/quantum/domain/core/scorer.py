@@ -117,21 +117,42 @@ class MultiCriteriaScorer:
     def _calculate_risk_score(self, data):
         return ScoreComponent("risk", 100, self.category_weights['risk'], "neutral")
 
-    def _compute_final_score(self, components):
-        weighted_sum = sum(c.value * c.weight for c in components)
-        total_weight = sum(c.weight for c in components)
-        total_score = weighted_sum / total_weight if total_weight > 0 else 50
+    def _compute_final_score(self, components: List[ScoreComponent]) -> TradingScore:
+        """Calcule le score final vectorisé et détermine la direction institutionnelle."""
+        values = np.array([c.value for c in components])
+        weights = np.array([c.weight for c in components])
         
-        bullish = sum(c.weight for c in components if c.direction == "bullish")
-        bearish = sum(c.weight for c in components if c.direction == "bearish")
+        # Calcul du score pondéré (NumPy vectorization)
+        total_score = np.average(values, weights=weights)
         
-        direction = "BUY" if bullish > bearish * 1.2 else "SELL" if bearish > bullish * 1.2 else "NEUTRAL"
+        # Analyse des biais directionnels
+        bullish_sum = sum(c.weight for c in components if c.direction == "bullish")
+        bearish_sum = sum(c.weight for c in components if c.direction == "bearish")
         
+        # Logique de décision institutionnelle (Confirmation multi-couches)
+        if bullish_sum > 0.6 and bearish_sum < 0.2:
+            direction = "STRONG_BUY"
+        elif bullish_sum > bearish_sum * 1.5:
+            direction = "BUY"
+        elif bearish_sum > 0.6 and bullish_sum < 0.2:
+            direction = "STRONG_SELL"
+        elif bearish_sum > bullish_sum * 1.5:
+            direction = "SELL"
+        else:
+            direction = "NEUTRAL"
+
         return TradingScore(
-            total_score=round(total_score, 1),
+            total_score=round(float(total_score), 1),
             direction=direction,
-            strength=SignalStrength.MODERATE,
-            confidence=0.7,
+            strength=self._calculate_strength(total_score, direction),
+            confidence=round(float(np.max([bullish_sum, bearish_sum])), 2),
             components=components,
-            recommendation="Signal generated"
+            recommendation=f"Direction: {direction} | Alpha Confidence: {bullish_sum - bearish_sum:.2f}"
         )
+
+    def _calculate_strength(self, score: float, direction: str) -> SignalStrength:
+        if direction == "NEUTRAL": return SignalStrength.AVOID
+        abs_deviation = abs(score - 50)
+        if abs_deviation > 30: return SignalStrength.VERY_STRONG
+        if abs_deviation > 15: return SignalStrength.STRONG
+        return SignalStrength.MODERATE
