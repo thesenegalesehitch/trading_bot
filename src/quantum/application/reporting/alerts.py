@@ -376,6 +376,183 @@ class WebhookNotifier:
             return False
 
 
+class ICTAlertNotifier:
+    """
+    Notifications spécialisées pour les signaux ICT Full Setup.
+    
+    Envoie des alertes formatées pour:
+    - Discord avec embeds riches
+    - Telegram avec formatage Markdown
+    
+    Inclut:
+    - Entry, Stop Loss, Take Profits
+    - Risk/Reward ratio
+    - Confluence factors
+    - Killzone, Volume Spike
+    """
+    
+    def __init__(self):
+        self.discord = DiscordNotifier()
+        self.telegram = TelegramNotifier()
+    
+    def is_available(self) -> bool:
+        return self.discord.is_available() or self.telegram.is_available()
+    
+    def send_ict_signal(
+        self,
+        trade_data: Dict,
+        discord_webhook_url: str = None,
+        telegram_token: str = None,
+        telegram_chat_id: str = None
+    ) -> Dict[str, bool]:
+        """
+        Envoie un signal ICT Full Setup sur tous les canaux.
+        
+        Args:
+            trade_data: Données du trade (dict de FullSetupTrade.to_dict())
+            discord_webhook_url: Webhook Discord optionnel
+            telegram_token: Token Telegram optionnel
+            telegram_chat_id: Chat ID Telegram optionnel
+        
+        Returns:
+            Dict avec statut d'envoi par canal
+        """
+        results = {}
+        
+        # Discord Embed
+        if discord_webhook_url or self.discord.is_available():
+            webhook = discord_webhook_url or os.getenv('DISCORD_WEBHOOK_URL', '')
+            if webhook:
+                results['discord'] = self._send_discord_ict(webhook, trade_data)
+        
+        # Telegram
+        if telegram_token or os.getenv('TELEGRAM_BOT_TOKEN', ''):
+            token = telegram_token or os.getenv('TELEGRAM_BOT_TOKEN', '')
+            chat_id = telegram_chat_id or os.getenv('TELEGRAM_CHAT_ID', '')
+            
+            if token and chat_id:
+                telegram = TelegramNotifier(token, chat_id)
+                results['telegram'] = self._send_telegram_ict(telegram, trade_data)
+        
+        return results
+    
+    def _send_discord_ict(self, webhook_url: str, trade_data: Dict) -> bool:
+        """Envoie un embed Discord formaté pour ICT Full Setup."""
+        try:
+            direction = trade_data.get('direction', 'UNKNOWN')
+            color = 0x2ECC71 if direction == 'BUY' else 0xE74C3C
+            emoji = '🟢' if direction == 'BUY' else '🔴'
+            
+            embed = {
+                "title": f"{emoji} ICT FULL SETUP | {trade_data.get('symbol', 'N/A')} | {direction}",
+                "color": color,
+                "fields": [
+                    {
+                        "name": "🎯 Entry",
+                        "value": f"`{trade_data.get('entry', 'N/A'):.5f}`",
+                        "inline": True
+                    },
+                    {
+                        "name": "🛑 Stop Loss",
+                        "value": f"`{trade_data.get('stop_loss', 'N/A'):.5f}`",
+                        "inline": True
+                    },
+                    {
+                        "name": "📈 Risk/Reward",
+                        "value": f"`1:{trade_data.get('risk_reward', 0):.1f}`",
+                        "inline": True
+                    },
+                    {
+                        "name": "🎯 Take Profits",
+                        "value": f"TP1: `{trade_data.get('take_profits', [0])[0]:.5f}`\n"
+                                 f"TP2: `{trade_data.get('take_profits', [0])[1]:.5f}`\n"
+                                 f"TP3: `{trade_data.get('take_profits', [0])[2]:.5f}`",
+                        "inline": False
+                    },
+                    {
+                        "name": "📊 Confluence",
+                        "value": f"**Killzone:** {trade_data.get('killzone', 'N/A')}\n"
+                                 f"**Volume Spike:** {'✅' if trade_data.get('volume_spike') else '❌'}\n"
+                                 f"**Confiance:** {trade_data.get('confidence', 0):.0f}%\n"
+                                 f"**Timeframe:** {trade_data.get('timeframe', 'N/A')}",
+                        "inline": False
+                    },
+                    {
+                        "name": "🔄 Séquence",
+                        "value": f"**Sweep:** {trade_data.get('sequence', {}).get('swept_level', 'N/A')}\n"
+                                 f"**FVG Tap:** {trade_data.get('sequence', {}).get('htf_fvg_tap', 'N/A')}\n"
+                                 f"**MSS:** {trade_data.get('sequence', {}).get('mss_type', 'N/A')}\n"
+                                 f"**Setup ID:** `{trade_data.get('setup_id', 'N/A')}`",
+                        "inline": False
+                    }
+                ],
+                "footer": {
+                    "text": "Quantum Trading System | ICT Full Setup"
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            payload = {"embeds": [embed]}
+            
+            response = requests.post(
+                webhook_url,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+            
+            return response.status_code in [200, 204]
+            
+        except Exception as e:
+            print(f"❌ Erreur Discord ICT: {e}")
+            return False
+    
+    def _send_telegram_ict(self, telegram: TelegramNotifier, trade_data: Dict) -> bool:
+        """Envoie un message Telegram formaté pour ICT Full Setup."""
+        try:
+            direction = trade_data.get('direction', 'UNKNOWN')
+            emoji = '🟢' if direction == 'BUY' else '🔴'
+            
+            tps = trade_data.get('take_profits', [0, 0, 0])
+            
+            message = (
+                f"{emoji} *ICT FULL SETUP DETECTED*\n\n"
+                f"📈 *Symbol:* {trade_data.get('symbol', 'N/A')}\n"
+                f"🎯 *Direction:* {direction}\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"📊 *Trade Levels*\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"• Entry: `{trade_data.get('entry', 0):.5f}`\n"
+                f"• Stop Loss: `{trade_data.get('stop_loss', 0):.5f}`\n"
+                f"• TP1: `{tps[0]:.5f}`\n"
+                f"• TP2: `{tps[1]:.5f}`\n"
+                f"• TP3: `{tps[2]:.5f}`\n\n"
+                f"📈 *Risk/Reward:* `1:{trade_data.get('risk_reward', 0):.1f}`\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"🔍 *Confluence*\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"• Killzone: {trade_data.get('killzone', 'N/A')}\n"
+                f"• Volume Spike: {'✅' if trade_data.get('volume_spike') else '❌'}\n"
+                f"• Confiance: {trade_data.get('confidence', 0):.0f}%\n"
+                f"• Timeframe: {trade_data.get('timeframe', 'N/A')}\n\n"
+                f"⏰ *Detected:* {datetime.now().strftime('%H:%M:%S')} UTC\n"
+                f"🆔 *ID:* `{trade_data.get('setup_id', 'N/A')}`"
+            )
+            
+            alert = Alert(
+                title=f"ICT Full Setup: {trade_data.get('symbol', 'N/A')} {direction}",
+                message=message,
+                level=AlertLevel.SIGNAL,
+                timestamp=datetime.now()
+            )
+            
+            return telegram.send(alert)
+            
+        except Exception as e:
+            print(f"❌ Erreur Telegram ICT: {e}")
+            return False
+
+
 class AlertManager:
     """
     Gestionnaire centralisé des alertes.
@@ -409,6 +586,11 @@ class AlertManager:
         if webhook.is_available():
             self.notifiers['webhook'] = webhook
             print("✅ Webhook personnalisé configuré")
+        
+        # ICT Notifier
+        self.ict_notifier = ICTAlertNotifier()
+        if self.ict_notifier.is_available():
+            print("✅ ICT Alerts configuré")
         
         if not self.notifiers:
             print("⚠️ Aucun canal de notification configuré")
@@ -545,6 +727,21 @@ class AlertManager:
             }
             for a in self.alert_history[-limit:]
         ]
+    
+    def send_ict_full_setup_signal(self, trade_data: Dict) -> Dict[str, bool]:
+        """
+        Envoie un signal ICT Full Setup sur tous les canaux configurés.
+        
+        Args:
+            trade_data: Données du trade ICT Full Setup
+        
+        Returns:
+            Dict avec statut d'envoi par canal
+        """
+        if not hasattr(self, 'ict_notifier'):
+            self.ict_notifier = ICTAlertNotifier()
+        
+        return self.ict_notifier.send_ict_signal(trade_data)
 
 
 if __name__ == "__main__":
