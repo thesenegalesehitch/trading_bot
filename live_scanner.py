@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
-Scanner Live - Analyse en temps réel des opportunités de trading
-================================================================
+Scanner Live - Analyse en temps reel des opportunites de trading
+==============================================================
 
-Ce script analyse les marchés en temps réel et détecte les opportunités
-basées sur les concepts ICT/SMC.
+Ce script analyse les marches en temps reel et detecte les opportunites
+basees sur les concepts ICT/SMC.
+
+Installation:
+    pip install yfinance pandas pytz
 
 Usage:
     python live_scanner.py
@@ -17,18 +20,17 @@ import sys
 from datetime import datetime
 from typing import Dict, List, Optional
 
-# Colors for terminal output
-class Colors:
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    BOLD = '\033[1m'
-    END = '\033[0m'
+# Couleurs pour le terminal
+GREEN = '\033[92m'
+RED = '\033[91m'
+YELLOW = '\033[93m'
+BLUE = '\033[94m'
+BOLD = '\033[1m'
+END = '\033[0m'
 
 
 def get_data(symbol: str, timeframe: str = "1h") -> Optional[Dict]:
-    """Récupère les données depuis yfinance."""
+    """Recupere les donnees depuis yfinance."""
     try:
         import yfinance as yf
         
@@ -59,13 +61,16 @@ def get_data(symbol: str, timeframe: str = "1h") -> Optional[Dict]:
             "open": df['Open'].iloc[-1],
             "volume": df['Volume'].iloc[-1]
         }
+    except ImportError:
+        print(f"{RED}Erreur: Installe yfinance avec: pip install yfinance{END}")
+        return None
     except Exception as e:
-        print(f"{Colors.RED}Erreur lors du téléchargement: {e}{Colors.END}")
+        print(f"{RED}Erreur lors du telechargement: {e}{END}")
         return None
 
 
 def detect_fvg(df) -> List[Dict]:
-    """Détecte les Fair Value Gaps."""
+    """Detecte les Fair Value Gaps."""
     fvgs = []
     
     for i in range(2, len(df)):
@@ -97,13 +102,13 @@ def detect_fvg(df) -> List[Dict]:
 
 
 def detect_order_blocks(df, lookback: int = 10) -> List[Dict]:
-    """Détecte les Order Blocks."""
+    """Detecte les Order Blocks."""
     blocks = []
     
     for i in range(lookback, len(df)):
-        # Bearish OB: Après une montée, un range serré
-        if df['Close'].iloc[i] < df['Open'].iloc[i]:  # Bougie baissière
-            # Chercher le plus bas récent
+        # Bearish OB: Apres une monte, un range serré
+        if df['Close'].iloc[i] < df['Open'].iloc[i]:  # Bougie baissiere
+            # Chercher le plus bas recent
             recent_lows = df['Low'].iloc[i-lookback:i].min()
             if df['Low'].iloc[i] <= recent_lows * 1.001:  # Proche du low
                 blocks.append({
@@ -117,7 +122,7 @@ def detect_order_blocks(df, lookback: int = 10) -> List[Dict]:
 
 
 def detect_mss(df) -> Optional[Dict]:
-    """Détecte les Market Structure Shifts."""
+    """Detecte les Market Structure Shifts."""
     if len(df) < 20:
         return None
     
@@ -162,15 +167,15 @@ def detect_mss(df) -> Optional[Dict]:
 
 def get_killzone_status() -> Dict:
     """Retourne le status de la killzone actuelle."""
-    import pytz
     from datetime import datetime
+    import pytz
     
     # UTC time
     utc_dt = datetime.now(pytz.UTC)
     hour = utc_dt.hour
     
-    # London: 7h-11h UTC (8h-12h CET)
-    # NY: 12h-16h UTC (13h-17h CET)  
+    # London: 7h-11h UTC
+    # NY: 12h-16h UTC
     # Asia: 0h-4h UTC
     
     if 7 <= hour <= 11:
@@ -184,62 +189,62 @@ def get_killzone_status() -> Dict:
 
 
 def analyze_market(data: Dict) -> None:
-    """Affiche l'analyse complète du marché."""
+    """Affiche l'analyse complete du marche."""
     df = data['df']
     symbol = data['symbol']
     
-    print(f"\n{Colors.BOLD}{'='*60}{Colors.END}")
-    print(f"{Colors.BOLD}📊 ANALYSE LIVE - {symbol} ({data['timeframe']}){Colors.END}")
-    print(f"{Colors.BOLD}{'='*60}{Colors.END}")
+    print(f"\n{BOLD}{'='*60}{END}")
+    print(f"{BOLD}ANALYSE LIVE - {symbol} ({data['timeframe']}){END}")
+    print(f"{BOLD}{'='*60}{END}")
     
     # Prix actuel
     price = data['current_price']
     change = ((price - df['Open'].iloc[-1]) / df['Open'].iloc[-1]) * 100
     
-    color = Colors.GREEN if change >= 0 else Colors.RED
-    print(f"\n💰 Prix: {price:.5f} ({color}{change:+.2f}%{Colors.END})")
+    color = GREEN if change >= 0 else RED
+    print(f"\nPrix: {price:.5f} ({color}{change:+.2f}%{END})")
     
     # Killzone
     killzone = get_killzone_status()
-    kz_color = Colors.GREEN if killzone['active'] else Colors.YELLOW
-    print(f"🕐 Killzone: {kz_color}{killzone['name']}{Colors.END} - {killzone['best_for']}")
+    kz_color = GREEN if killzone['active'] else YELLOW
+    print(f"Killzone: {kz_color}{killzone['name']}{END} - {killzone['best_for']}")
     
     # FVG
-    print(f"\n{Colors.BOLD}📊 Fair Value Gaps:{Colors.END}")
+    print(f"\n{BOLD}Fair Value Gaps:{END}")
     fvgs = detect_fvg(df)
     if fvgs:
         for fvg in fvgs:
             fvg_type = fvg['type']
-            fvg_color = Colors.GREEN if fvg_type == "BULLISH" else Colors.RED
-            print(f"  {fvg_color}{fvg_type}{Colors.END}: {fvg['start']:.5f} - {fvg['end']:.5f} (size: {fvg['size']:.5f})")
+            fvg_color = GREEN if fvg_type == "BULLISH" else RED
+            print(f"  {fvg_color}{fvg_type}{END}: {fvg['start']:.5f} - {fvg['end']:.5f}")
     else:
-        print(f"  {Colors.YELLOW}Aucun FVG détecté{Colors.END}")
+        print(f"  {YELLOW}Aucun FVG detecte{END}")
     
     # Order Blocks
-    print(f"\n{Colors.BOLD}📦 Order Blocks:{Colors.END}")
+    print(f"\n{BOLD}Order Blocks:{END}")
     blocks = detect_order_blocks(df)
     if blocks:
         for block in blocks:
-            block_color = Colors.RED if block['type'] == "BEARISH" else Colors.GREEN
-            print(f"  {block_color}{block['type']}{Colors.END}: {block['zone_low']:.5f} - {block['zone_high']:.5f}")
+            block_color = RED if block['type'] == "BEARISH" else GREEN
+            print(f"  {block_color}{block['type']}{END}: {block['zone_low']:.5f} - {block['zone_high']:.5f}")
     else:
-        print(f"  {Colors.YELLOW}Aucun OB récent{Colors.END}")
+        print(f"  {YELLOW}Aucun OB recent{END}")
     
     # MSS
-    print(f"\n{Colors.BOLD}🔄 Market Structure Shift:{Colors.END}")
+    print(f"\n{BOLD}Market Structure Shift:{END}")
     mss = detect_mss(df)
     if mss:
-        mss_color = Colors.RED if mss['type'] == "BEARISH" else Colors.GREEN
-        print(f"  {mss_color}⚠️ MSS {mss['type']}{Colors.END}")
+        mss_color = RED if mss['type'] == "BEARISH" else GREEN
+        print(f"  {mss_color}MSS {mss['type']}{END}")
         if mss['type'] == "BEARISH":
             print(f"     Prix sous le swing low: {mss['swing_low']:.5f}")
         else:
             print(f"     Prix au-dessus du swing high: {mss['swing_high']:.5f}")
     else:
-        print(f"  {Colors.YELLOW}Pas de MSS détecté{Colors.END}")
+        print(f"  {YELLOW}Pas de MSS detecte{END}")
     
-    # Résumé du signal
-    print(f"\n{Colors.BOLD}🎯 Résumé:{Colors.END}")
+    # Resume du signal
+    print(f"\n{BOLD}Resume:{END}")
     
     # Compter les signaux
     bullish_signals = 0
@@ -259,38 +264,38 @@ def analyze_market(data: Dict) -> None:
             bearish_signals += 1
     
     if bullish_signals > bearish_signals:
-        print(f"  {Colors.GREEN}📈 Tendance haussière ({bullish_signals} signaux){Colors.END}")
+        print(f"  {GREEN}Tendance haussiere ({bullish_signals} signaux){END}")
     elif bearish_signals > bullish_signals:
-        print(f"  {Colors.RED}📉 Tendance baissière ({bearish_signals} signaux){Colors.END}")
+        print(f"  {RED}Tendance baissiere ({bearish_signaux} signaux){END}")
     else:
-        print(f"  {Colors.YELLOW}⏸️ Neutre{Colors.END}")
+        print(f"  {YELLOW}Neutre{END}")
     
-    print(f"\n{Colors.BOLD}{'='*60}{Colors.END}\n")
+    print(f"\n{BOLD}{'='*60}{END}\n")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Scanner Live - Analyse ICT/SMC")
-    parser.add_argument("--symbol", "-s", default="EURUSD=X", help="Symbole à analyser (ex: BTC-USD, EURUSD=X)")
+    parser.add_argument("--symbol", "-s", default="EURUSD=X", help="Symbole a analyser (ex: BTC-USD, EURUSD=X)")
     parser.add_argument("--timeframe", "-t", default="1h", help="Timeframe (1m, 5m, 15m, 1h, 4h, 1d)")
     parser.add_argument("--watch", "-w", action="store_true", help="Mode watch - Analyse continue")
     
     args = parser.parse_args()
     
-    print(f"{Colors.BLUE}🔍 Scanner Live - Concepts ICT/SMC{Colors.END}")
+    print(f"{BLUE}Scanner Live - Concepts ICT/SMC{END}")
     print(f"Symbole: {args.symbol}")
     print(f"Timeframe: {args.timeframe}")
     
     data = get_data(args.symbol, args.timeframe)
     
     if data is None:
-        print(f"{Colors.RED}Erreur: Impossible de récupérer les données{Colors.END}")
+        print(f"{RED}Erreur: Impossible de recuperer les donnees{END}")
         sys.exit(1)
     
     analyze_market(data)
     
     if args.watch:
         import time
-        print(f"\n{Colors.YELLOW}Mode watch activé - Ctrl+C pour arrêter{Colors.END}\n")
+        print(f"\n{YELLOW}Mode watch active - Ctrl+C pour arreter{END}\n")
         try:
             while True:
                 time.sleep(60)  # Update chaque minute
@@ -298,7 +303,7 @@ def main():
                 if data:
                     analyze_market(data)
         except KeyboardInterrupt:
-            print(f"\n{Colors.YELLOW}Arrêté{Colors.END}")
+            print(f"\n{YELLOW}Arrete{END}")
 
 
 if __name__ == "__main__":
