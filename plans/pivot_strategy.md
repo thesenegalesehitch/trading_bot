@@ -291,11 +291,11 @@ OUTPUT:
 
 ## 🚀 PROCHAINES ÉTAPES
 
-1. **Cette semaine:** Signer avec 3 agents IA (Data, ML, UI)
-2. **Semaine 2:** Kickoff agents, specification complète
-3. **Semaine 4:** MVP avec signal + Entry/SL/TP
-4. **Semaine 8:** Beta avec 50 utilisateurs
-5. **Semaine 12:** Launch public
+1.  Signer avec 3 agents IA (Data, ML, UI)
+2.  Kickoff agents, specification complète
+3.  MVP avec signal + Entry/SL/TP
+4.  Beta avec 50 utilisateurs
+5.  Launch public
 
 ---
 
