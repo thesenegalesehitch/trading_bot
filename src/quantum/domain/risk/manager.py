@@ -425,28 +425,104 @@ class RiskManager:
         return portfolio_returns.dropna()
 
     def _generate_synthetic_data(self, symbols) -> Dict[str, pd.DataFrame]:
-        """Génère des données synthétiques pour les tests."""
-        np.random.seed(42)
-        dates = pd.date_range(start='2020-01-01', end='2024-01-01', freq='D')
-
+        """
+        Génère des données de fallback pour les calculs de risque.
+        
+        PRIORITÉ: Tente d'abord d'utiliser yfinance pour des données réelles.
+        Only utilise des données synthétiques si yfinance échoue.
+        
+        NOTE: Les données synthétiques sont marquées comme telles pour
+        indiquer que les métriques de risque sont des estimations.
+        """
         synthetic_data = {}
-        for symbol in symbols:
-            # Générer des prix synthétiques avec tendance et volatilité
-            n_days = len(dates)
-            returns = np.random.normal(0.0005, 0.02, n_days)  # Rendement quotidien moyen 0.05%, vol 2%
-            prices = 100 * np.exp(np.cumsum(returns))  # Prix starting at 100
-
-            df = pd.DataFrame({
-                'Open': prices * 0.99,
-                'High': prices * 1.02,
-                'Low': prices * 0.98,
-                'Close': prices,
-                'Volume': np.random.randint(1000000, 10000000, n_days)
-            }, index=dates)
-
-            synthetic_data[symbol] = df
-
+        
+        # Tenter d'abord d'utiliser yfinance pour des données réelles
+        try:
+            import yfinance as yf
+            logger.info("Tentative de téléchargement de données réelles via yfinance...")
+            
+            for symbol in symbols:
+                try:
+                    # Mapper les symboles vers le format yfinance
+                    yf_symbol = symbol
+                    if not any(x in symbol for x in ['^', '=']):
+                        # Crypto ou actif sans suffixe
+                        yf_symbol = symbol.replace('-', '-')
+                    
+                    # Télécharger 2 ans de données
+                    ticker = yf.Ticker(yf_symbol)
+                    df = ticker.history(period="2y", interval="1d")
+                    
+                    if not df.empty and len(df) > 100:
+                        synthetic_data[symbol] = df
+                        logger.info(f"Données réelles téléchargées pour {symbol}: {len(df)} jours")
+                    else:
+                        logger.warning(f"Données insuffisantes pour {symbol}, utilisation fallback")
+                        synthetic_data[symbol] = self._create_realistic_synthetic(symbol)
+                except Exception as e:
+                    logger.warning(f"Échec téléchargement {symbol}: {e}")
+                    synthetic_data[symbol] = self._create_realistic_synthetic(symbol)
+                    
+        except ImportError:
+            logger.warning("yfinance non disponible, utilisation données synthétiques")
+            for symbol in symbols:
+                synthetic_data[symbol] = self._create_realistic_synthetic(symbol)
+        
+        if not synthetic_data:
+            logger.error("Aucune donnée disponible, même synthétique")
+            
         return synthetic_data
+
+    def _create_realistic_synthetic(self, symbol: str) -> pd.DataFrame:
+        """
+        Crée des données synthétiques plus réalistes avec:
+        - Leptokurticité (queues grasses)
+        - Volatility clustering (effets ARCH)
+        - Regime changes
+        """
+        np.random.seed(hash(symbol) % 2**32)
+        dates = pd.date_range(start='2022-01-01', end='2024-01-01', freq='D')
+        n_days = len(dates)
+        
+        # Générer des rendements avec分布 leptokurtic (Student-t)
+        from scipy import stats
+        
+        # Paramètres variables par régime
+        returns = np.zeros(n_days)
+        regime = np.random.choice(['low_vol', 'normal', 'high_vol'], n_days, p=[0.3, 0.5, 0.2])
+        
+        for i in range(n_days):
+            if regime[i] == 'low_vol':
+                sigma = 0.008
+            elif regime[i] == 'high_vol':
+                sigma = 0.04
+            else:
+                sigma = 0.02
+            
+            # Student-t pour queues grasses
+            returns[i] = stats.t.rvs(df=4, loc=0, scale=sigma)
+        
+        # Ajouter des gaps réalistes (volatility clustering)
+        for i in range(1, n_days):
+            if abs(returns[i-1]) > 0.02:
+                returns[i] *= 1.5  # Augmenter vol après gros mouvement
+        
+        # Prix
+        prices = 100 * np.exp(np.cumsum(returns))
+        
+        # OHLC simulé
+        df = pd.DataFrame({
+            'Open': prices * (1 + np.random.uniform(-0.005, 0.005, n_days)),
+            'High': prices * (1 + np.random.uniform(0, 0.02, n_days)),
+            'Low': prices * (1 - np.random.uniform(0, 0.02, n_days)),
+            'Close': prices,
+            'Volume': np.random.randint(1000000, 10000000, n_days)
+        }, index=dates)
+        
+        # Marquer comme synthétique
+        df.attrs['synthetic'] = True
+        
+        return df
 
     def stress_test(self, portfolio: Dict[str, float], scenario: str,
                    historical_data: Optional[Dict[str, pd.DataFrame]] = None) -> StressTestResult:
