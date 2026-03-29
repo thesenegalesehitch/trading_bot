@@ -57,6 +57,18 @@ dependencies = [
     "tqdm>=4.67.0",
     "pydantic>=2.10.0",
     "rich>=13.9.0",
+    
+    # API & Database Backend
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "sqlalchemy>=2.0.35",
+    "asyncpg>=0.30.0",
+    "greenlet>=3.1.1",
+    "passlib>=1.7.4",
+    "bcrypt>=4.2.0",
+    "pyjwt>=2.9.0",
+    "python-multipart>=0.0.12",
+    "rich>=13.9.0",
 ]
 
 [project.optional-dependencies]
