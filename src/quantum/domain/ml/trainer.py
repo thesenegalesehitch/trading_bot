@@ -563,7 +563,7 @@ class ModelTrainer:
         
         try:
             auc = roc_auc_score(y_val, val_proba)
-        except:
+        except (ValueError, TypeError):
             auc = 0.5
         
         return {
