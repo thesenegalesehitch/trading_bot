@@ -10,6 +10,67 @@ import json
 
 Base = declarative_base()
 
+class User(Base):
+    """Utilisateurs de la plateforme."""
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(100))
+    is_active = Column(Boolean, default=True)
+    is_superuser = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+    
+    accounts = relationship("Account", back_populates="user")
+    progress = relationship("UserProgress", back_populates="user")
+
+class Account(Base):
+    """Comptes de trading associés aux utilisateurs (Live vs Demo)."""
+    __tablename__ = 'accounts'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    account_type = Column(String(20), default='DEMO')  # 'DEMO' or 'LIVE'
+    balance = Column(Float, default=1000000.0)  # $1M pour le compte démo par défaut
+    currency = Column(String(10), default='USD')
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+
+    user = relationship("User", back_populates="accounts")
+
+class Course(Base):
+    """Cours éducatifs de la plateforme."""
+    __tablename__ = 'courses'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text)
+    level = Column(String(50))  # Beginner, Intermediate, Advanced
+    order = Column(Integer, default=0)
+    
+    lessons = relationship("Lesson", back_populates="course")
+
+class Lesson(Base):
+    """Leçons pour chaque cours éducatif."""
+    __tablename__ = 'lessons'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    course_id = Column(Integer, ForeignKey('courses.id'), nullable=False)
+    title = Column(String(200), nullable=False)
+    content_path = Column(String(255))  # Chemin d'accès au fichier Markdown
+    order = Column(Integer, default=0)
+    
+    course = relationship("Course", back_populates="lessons")
+
+class UserProgress(Base):
+    """Progression des utilisateurs dans les cours éducatifs."""
+    __tablename__ = 'user_progress'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
+    completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+    
+    user = relationship("User", back_populates="progress")
+    lesson = relationship("Lesson")
+
 class Symbol(Base):
     """
     Données maîtresses des symboles.
@@ -144,8 +205,12 @@ class Trade(Base):
     __tablename__ = 'trades'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False, index=True)
     symbol_id = Column(Integer, ForeignKey('symbols.id'), nullable=False, index=True)
     signal_id = Column(Integer, ForeignKey('signals.id'), nullable=True)
+    
+    # Relations
+    account = relationship("Account")
 
     # Détails du trade
     side = Column(String(10), nullable=False)  # 'BUY', 'SELL'
