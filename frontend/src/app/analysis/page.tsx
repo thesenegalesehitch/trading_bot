@@ -141,7 +141,7 @@ export default function AnalysisPage() {
                   <TradingChart 
                     data={chartData} 
                     markers={analysisData?.setups?.map((s: any) => ({
-                      time: chartData[chartData.length - 1]?.time, // Marker on last candle for current setup
+                      time: chartData[chartData.length - 1]?.time,
                       position: s.direction === 'BULLISH' ? 'belowBar' : 'aboveBar',
                       color: s.direction === 'BULLISH' ? '#10b981' : '#ef4444',
                       shape: s.direction === 'BULLISH' ? 'arrowUp' : 'arrowDown',
@@ -151,6 +151,8 @@ export default function AnalysisPage() {
                         { price: s.entry, label: translate('Entry FVG', 'Point d\'Entrée'), color: '#3b82f6' },
                         { price: s.stop_loss, label: translate('Stop Loss', 'Protection'), color: '#ef4444' }
                     ])}
+                    symbol={symbol}
+                    enableLive={!replayTime}
                   />
                 )}
               </CardContent>
