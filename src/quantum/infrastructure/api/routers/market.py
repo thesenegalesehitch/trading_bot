@@ -28,6 +28,7 @@ class KlineData(BaseModel):
 async def get_klines(
     symbol: str, 
     interval: str = Query("1h", description="1m, 5m, 15m, 1h, 1d"),
+    end_time: str = Query(None, description="ISO format date pour simulation/replay"),
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """Récupère les données historiques OHLCV d'un symbole."""
@@ -38,6 +39,15 @@ async def get_klines(
         df = downloader.get_data(symbol, period=period, interval=interval)
         if df.empty:
             raise HTTPException(status_code=404, detail=f"Données introuvables pour {symbol}")
+            
+        # Filtre pour le replay/simulation
+        if end_time:
+            try:
+                import pandas as pd
+                cutoff = pd.to_datetime(end_time).tz_localize(df.index.tz) if df.index.tz else pd.to_datetime(end_time)
+                df = df[df.index <= cutoff]
+            except Exception as e:
+                logger.warning(f"Erreur format end_time: {e}")
             
         # Convertir en liste de dictionnaires
         df_reset = df.reset_index()
@@ -57,6 +67,8 @@ async def get_klines(
                 volume=float(row['Volume'])
             ))
         return results
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
