@@ -8,11 +8,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 from quantum.infrastructure.db.session import init_db, close_db
 from quantum.infrastructure.api.routers import auth, market, analysis, trading, risk, academy, backtest, journal
-
 from quantum.shared.config.settings import config
 
+# Configuration du Rate Limiter
+limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -34,6 +39,8 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configuration CORS restrictive
 app.add_middleware(
