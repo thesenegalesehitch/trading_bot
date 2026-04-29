@@ -171,3 +171,4 @@ mypy>=1.14.0               # Type checking
 # Production Database
 asyncpg>=0.29.0
 psycopg2-binary>=2.9.9
+slowapi>=0.1.9
