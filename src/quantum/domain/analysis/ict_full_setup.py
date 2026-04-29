@@ -711,30 +711,39 @@ class ICTFullSetupDetector:
         volume_ratio: float,
         killzone: str
     ) -> float:
-        """Calcule le score de confluence (0-1)."""
+        """
+        Calcule le Setup Probability Score (SPS) (0-1).
+        C'est un moteur probabiliste évaluant la qualité institutionnelle du trade.
+        """
         score = 0.0
         
-        # Killzone: +0.2
-        score += 0.2
-        
-        # Volume spike: +0.3
+        # 1. Time & Session Confluence (+0.25)
+        # Un trade en Killzone a beaucoup plus de probabilité de suivre l'algorithme bancaire
+        if killzone in ["LONDON", "NY"]:
+            score += 0.25
+            
+        # 2. Volume & Momentum Injection (+0.30)
+        # La validation du "Sponsorship" institutionnel se fait par le volume
         if volume_spike:
-            score += 0.3
+            score += 0.30
         else:
-            score += min(volume_ratio * 0.2, 0.2)
-        
-        # MSS impulsif: +0.2
-        if mss.impulsive_candle_size > 0.7:
-            score += 0.2
+            # Score partiel si le volume est au-dessus de la moyenne mais pas un spike massif
+            score += min(volume_ratio * 0.15, 0.15)
+            
+        # 3. Structural Displacement Quality (+0.25)
+        # Une bougie avec peu de mèches (corps large) indique une forte conviction
+        if mss.impulsive_candle_size > 0.8:
+            score += 0.25
         elif mss.impulsive_candle_size > 0.6:
-            score += 0.1
-        
-        # RR excellent (>3): +0.1
-        if ifvg.risk_reward > 3:
-            score += 0.1
-        elif ifvg.risk_reward > 2:
-            score += 0.05
-        
+            score += 0.15
+            
+        # 4. Risk/Reward & Invalidation Distance (+0.20)
+        # Un bon trade est un trade où l'invalidation est claire et le RR asymétrique
+        if ifvg.risk_reward > 4:
+            score += 0.20
+        elif ifvg.risk_reward > 2.5:
+            score += 0.10
+            
         return min(score, 1.0)
     
     def scan_symbol(
