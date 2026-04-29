@@ -381,17 +381,17 @@ class MSSDetector:
         sweep_event: SweepEvent
     ) -> Optional[MSSEvent]:
         """
-        Détecte un MSS après un sweep.
-        
-        Le MSS est validé si:
-        - Le prix casse la structure locale (swing high/low)
-        - La bougie de cassure est impulsive (corps > 60% de la range)
+        Détecte un MSS après un sweep avec pré-calcul vectorisé.
         """
-        swing_window = 5
+        # Pré-calcul vectorisé pour la performance
         highs = df['High'].values
         lows = df['Low'].values
         closes = df['Close'].values
         opens = df['Open'].values
+        
+        bodies = np.abs(closes - opens)
+        ranges = highs - lows + 1e-10
+        impulsive_ratios = bodies / ranges
         
         # Fix: sweep_candle peut être 0 (falsy), donc utiliser 'is not None'
         sweep_idx = sweep_event.sweep_candle if sweep_event.sweep_candle is not None else len(df) - 5
@@ -399,19 +399,14 @@ class MSSDetector:
         if direction == "BEARISH":
             # Chercher un swing high à casser
             for i in range(sweep_idx + 2, len(df)):
-                # Calculer la bougie impulsive
-                body = abs(closes[i] - opens[i])
-                total_range = highs[i] - lows[i] + 1e-10
-                impulsive_ratio = body / total_range
+                impulsive_ratio = impulsive_ratios[i]
                 
                 # Vérifier la cassure du swing high
                 recent_highs = highs[max(0, i-10):i]
                 if len(recent_highs) > 3:
-                    swing_high = min(recent_highs)  # Swing high le plus récent
+                    swing_high = np.min(recent_highs)  # Vectorisé via numpy
                     
-                    # Si le prix casse ce swing high avec une bougie impulsive
                     if highs[i] > swing_high and impulsive_ratio > 0.6:
-                        # Vérifier que la bougie ferme sous le swing high
                         if closes[i] < swing_high:
                             return MSSEvent(
                                 timestamp=df.index[i],
@@ -425,13 +420,11 @@ class MSSDetector:
         else:  # BULLISH
             # Chercher un swing low à casser
             for i in range(sweep_idx + 2, len(df)):
-                body = abs(closes[i] - opens[i])
-                total_range = highs[i] - lows[i] + 1e-10
-                impulsive_ratio = body / total_range
+                impulsive_ratio = impulsive_ratios[i]
                 
                 recent_lows = lows[max(0, i-10):i]
                 if len(recent_lows) > 3:
-                    swing_low = max(recent_lows)  # Swing low le plus récent
+                    swing_low = np.max(recent_lows)  # Vectorisé via numpy
                     
                     if lows[i] < swing_low and impulsive_ratio > 0.6:
                         if closes[i] > swing_low:
