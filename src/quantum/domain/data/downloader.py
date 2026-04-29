@@ -62,296 +62,57 @@ class DataDownloader:
         """Crée le répertoire de cache s'il n'existe pas."""
         os.makedirs(self.cache_dir, exist_ok=True)
     
-    def download_historical(
+    async def download_historical(
         self,
         symbol: str,
         years: int = None,
         interval: str = "1h"
     ) -> pd.DataFrame:
         """
-        Télécharge les données historiques pour un symbole donné.
-        
-        Args:
-            symbol: Symbole à télécharger (ex: "EURUSD=X")
-            years: Nombre d'années d'historique
-            interval: Intervalle des bougies
-        
-        Returns:
-            DataFrame avec colonnes OHLCV indexées par datetime
+        Télécharge les données historiques pour un symbole donné (Async).
         """
         years = years or config.data.HISTORICAL_YEARS
-        
-        # Calcul des dates
         end_date = datetime.now()
         start_date = end_date - timedelta(days=years * 365)
         
-        print(f"📥 Téléchargement de {symbol} ({interval}) depuis {start_date.date()}...")
+        # Check cache first
+        cached = self.load_from_cache(symbol, interval)
+        if cached is not None:
+            return cached
+
+        # Sources logic...
+        import asyncio
         
-        # Essayer les sources dans l'ordre: yfinance -> Polygon -> Finnhub -> Alpha Vantage
-        sources = [
-            ("yfinance", self._download_from_yfinance),
-            ("Polygon", self._download_from_polygon),
-            ("Finnhub", self._download_from_finnhub),
-            ("Alpha Vantage", self._try_alpha_vantage_fallback)
-        ]
-
-        for source_name, download_func in sources:
-            try:
-                print(f"📡 Tentative depuis {source_name}...")
-                df = download_func(symbol, start_date, end_date, interval, years)
-
-                if not df.empty:
-                    # Nettoyage des colonnes
-                    df = self._clean_dataframe(df)
-
-                    # Sauvegarde en cache
-                    cache_file = self._get_cache_path(symbol, interval)
-                    df.to_parquet(cache_file)
-                    print(f"✅ {len(df)} bougies téléchargées depuis {source_name} et mises en cache")
-                    return df
-
-            except Exception as e:
-                print(f"⚠️ Échec {source_name} pour {symbol}: {e}")
-                continue
-
-        print(f"❌ Aucune source n'a pu fournir des données pour {symbol}")
-        return pd.DataFrame()
-
-    def _download_from_yfinance(self, symbol: str, start_date: datetime, end_date: datetime, interval: str, years: int) -> pd.DataFrame:
-        """Télécharge depuis yfinance."""
-        ticker = yf.Ticker(symbol)
-        df = ticker.history(
-            start=start_date,
-            end=end_date,
-            interval=interval,
-            auto_adjust=True
-        )
-        return df
-
-    def _download_from_polygon(self, symbol: str, start_date: datetime, end_date: datetime, interval: str, years: int) -> pd.DataFrame:
-        """Télécharge depuis Polygon.io."""
-        if not self.polygon_key or not PolygonClient:
-            return pd.DataFrame()
+        # Wrap blocking yfinance in thread
+        def _fetch():
+            ticker = yf.Ticker(symbol)
+            return ticker.history(start=start_date, end=end_date, interval=interval, auto_adjust=True)
 
         try:
-            client = PolygonClient(self.polygon_key)
-
-            # Convertir l'intervalle
-            interval_map = {
-                "1m": "minute", "5m": "minute", "15m": "minute", "30m": "minute",
-                "1h": "hour", "4h": "hour", "1d": "day"
-            }
-            timespan = interval_map.get(interval, "day")
-            multiplier = 1
-            if interval in ["5m", "15m", "30m"]:
-                multiplier = int(interval[:-1])
-            elif interval == "4h":
-                multiplier = 4
-
-            # Télécharger
-            aggs = client.get_aggs(
-                symbol, multiplier, timespan,
-                start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
-            )
-
-            if not aggs:
-                return pd.DataFrame()
-
-            # Convertir en DataFrame
-            data = []
-            for agg in aggs:
-                data.append({
-                    'timestamp': pd.to_datetime(agg.timestamp, unit='ms'),
-                    'Open': agg.open,
-                    'High': agg.high,
-                    'Low': agg.low,
-                    'Close': agg.close,
-                    'Volume': agg.volume
-                })
-
-            df = pd.DataFrame(data)
-            df.set_index('timestamp', inplace=True)
-            return df
-
-        except Exception as e:
-            print(f"Erreur Polygon: {e}")
-            return pd.DataFrame()
-
-    def _download_from_finnhub(self, symbol: str, start_date: datetime, end_date: datetime, interval: str, years: int) -> pd.DataFrame:
-        """Télécharge depuis Finnhub."""
-        if not self.finnhub_key or not finnhub:
-            return pd.DataFrame()
-
-        try:
-            client = finnhub.Client(api_key=self.finnhub_key)
-
-            # Convertir les dates en timestamp
-            from_ts = int(start_date.timestamp())
-            to_ts = int(end_date.timestamp())
-
-            # Résolution
-            resolution_map = {
-                "1m": "1", "5m": "5", "15m": "15", "30m": "30",
-                "1h": "60", "1d": "D"
-            }
-            resolution = resolution_map.get(interval, "D")
-
-            # Télécharger
-            data = client.stock_candles(symbol, resolution, from_ts, to_ts)
-
-            if not data or data['s'] != 'ok':
-                return pd.DataFrame()
-
-            # Convertir en DataFrame
-            df = pd.DataFrame({
-                'timestamp': pd.to_datetime(data['t'], unit='s'),
-                'Open': data['o'],
-                'High': data['h'],
-                'Low': data['l'],
-                'Close': data['c'],
-                'Volume': data['v']
-            })
-            df.set_index('timestamp', inplace=True)
-            return df
-
-        except Exception as e:
-            print(f"Erreur Finnhub: {e}")
-            return pd.DataFrame()
-
-    def _download_from_alpha_vantage(
-        self,
-        from_symbol: str,
-        to_symbol: str,
-        interval: str = "1d",
-        years: int = 2
-    ) -> pd.DataFrame:
-        """
-        Télécharge les données forex depuis Alpha Vantage.
-
-        Args:
-            from_symbol: Devise source (ex: "EUR")
-            to_symbol: Devise cible (ex: "USD")
-            interval: Intervalle (1min, 5min, 15min, 30min, 60min)
-            years: Nombre d'années
-
-        Returns:
-            DataFrame avec colonnes OHLCV
-        """
-        if not self.alpha_vantage_key:
-            print("❌ Clé API Alpha Vantage non configurée")
-            return pd.DataFrame()
-
-        try:
-            # Mapping des intervalles
-            interval_map = {
-                "1m": "1min",
-                "5m": "5min",
-                "15m": "15min",
-                "30m": "30min",
-                "1h": "60min"
-            }
-            av_interval = interval_map.get(interval, "60min")
-
-            # Initialiser le client
-            fx = ForeignExchange(key=self.alpha_vantage_key)
-
-            # Pour le free tier, utiliser les données daily (intraday est premium)
-            data, _ = fx.get_currency_exchange_daily(
-                from_symbol=from_symbol,
-                to_symbol=to_symbol,
-                outputsize='full'
-            )
-
-            if not data:
-                print(f"⚠️ Aucune donnée Alpha Vantage pour {from_symbol}/{to_symbol}")
-                return pd.DataFrame()
-
-            # Convertir en DataFrame
-            df = pd.DataFrame.from_dict(data, orient='index')
-            df.index = pd.to_datetime(df.index)
-            df = df.sort_index()
-
-            # Renommer les colonnes
-            df = df.rename(columns={
-                '1. open': 'Open',
-                '2. high': 'High',
-                '3. low': 'Low',
-                '4. close': 'Close',
-                '5. volume': 'Volume'
-            })
-
-            # Convertir en numérique
-            for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
-
-            # Filtrer par période
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=years * 365)
-            df = df[df.index >= start_date]
-
-            print(f"✅ {len(df)} bougies téléchargées depuis Alpha Vantage pour {from_symbol}/{to_symbol}")
-
-            return df
-
-        except Exception as e:
-            print(f"❌ Erreur Alpha Vantage pour {from_symbol}/{to_symbol}: {e}")
-            return pd.DataFrame()
-
-    def _try_alpha_vantage_fallback(self, symbol: str, start_date: datetime, end_date: datetime, interval: str, years: int) -> pd.DataFrame:
-        """
-        Tente de télécharger depuis Alpha Vantage pour les symboles forex.
-
-        Args:
-            symbol: Symbole (ex: "EURUSD=X")
-            start_date: Date de début
-            end_date: Date de fin
-            interval: Intervalle
-            years: Nombre d'années
-
-        Returns:
-            DataFrame ou vide si échec
-        """
-        # Parser le symbole forex
-        if '=' in symbol:
-            base_symbol = symbol.split('=')[0]
-        else:
-            base_symbol = symbol
-
-        # Pour EURUSD=X -> EUR/USD
-        if len(base_symbol) == 6 and base_symbol[:3] != base_symbol[3:]:
-            from_symbol = base_symbol[:3]
-            to_symbol = base_symbol[3:]
-            df = self._download_from_alpha_vantage(from_symbol, to_symbol, interval, years)
-            # Filtrer par dates
+            df = await asyncio.to_thread(_fetch)
             if not df.empty:
-                df = df[(df.index >= start_date) & (df.index <= end_date)]
-            return df
+                df = self._clean_dataframe(df)
+                cache_file = self._get_cache_path(symbol, interval)
+                df.to_parquet(cache_file)
+                return df
+        except Exception as e:
+            print(f"⚠️ Échec yfinance pour {symbol}: {e}")
 
         return pd.DataFrame()
-    
-    def download_all_symbols(
+
+    async def download_all_symbols(
         self,
         interval: str = "1h",
         years: int = None
     ) -> Dict[str, pd.DataFrame]:
         """
-        Télécharge les données pour tous les symboles configurés.
-        
-        Args:
-            interval: Intervalle des bougies
-            years: Nombre d'années d'historique
-        
-        Returns:
-            Dictionnaire {symbole: DataFrame}
+        Télécharge les données pour tous les symboles en parallèle.
         """
-        data = {}
+        import asyncio
+        tasks = [self.download_historical(s, years, interval) for s in self.symbols]
+        results = await asyncio.gather(*tasks)
         
-        for symbol in tqdm(self.symbols, desc="Téléchargement des symboles"):
-            df = self.download_historical(symbol, years, interval)
-            if not df.empty:
-                data[symbol] = df
-        
-        return data
+        return {s: df for s, df in zip(self.symbols, results) if not df.empty}
     
     def download_multiple_timeframes(
         self,

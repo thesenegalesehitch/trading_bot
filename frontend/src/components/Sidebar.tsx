@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CandlestickChart, LayoutDashboard, LineChart, BookOpen, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Settings, LogOut, Zap, TrendingUp, ShieldCheck, History, GraduationCap, CandlestickChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -14,9 +14,12 @@ export function Sidebar() {
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Trading Démo', href: '/trade', icon: CandlestickChart },
-    { name: 'Analyses', href: '/analysis', icon: LineChart },
-    { name: 'Académie', href: '/learn', icon: BookOpen },
+    { name: 'Trading Démo', href: '/trade', icon: TrendingUp },
+    { name: 'Analyse', href: '/analysis', icon: Zap },
+    { name: 'Gestion Risques', href: '/risk', icon: ShieldCheck },
+    { name: 'Backtesting', href: '/backtest', icon: History },
+    { name: 'Journal', href: '/journal', icon: BookOpen },
+    { name: 'Académie', href: '/learn', icon: GraduationCap },
     { name: 'Paramètres', href: '/settings', icon: Settings },
   ];
 

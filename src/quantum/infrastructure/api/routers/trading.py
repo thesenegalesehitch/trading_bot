@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from quantum.infrastructure.api.core.deps import get_current_user, get_db
-from quantum.infrastructure.db.models import User, Account, Trade, Symbol
+from quantum.infrastructure.db.models import User, Account, Trade, Symbol, AccountHistory
 from quantum.domain.data.downloader import DataDownloader
 
 router = APIRouter()
@@ -146,6 +146,12 @@ async def close_trade(
 
     await db.commit()
     await db.refresh(trade)
+    await db.refresh(account)
+
+    # Enregistrer l'historique
+    history = AccountHistory(account_id=account.id, balance=account.balance)
+    db.add(history)
+    await db.commit()
 
     return {
         "id": trade.id,
@@ -183,3 +189,48 @@ async def get_open_positions(
             "status": trade.status,
         })
     return positions
+
+
+@router.get("/account")
+async def get_account_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Any:
+    """Récupère le solde et le statut du compte démo."""
+    result = await db.execute(
+        select(Account).filter(Account.user_id == current_user.id, Account.account_type == "DEMO")
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Compte introuvable.")
+    
+    return {
+        "id": account.id,
+        "balance": account.balance,
+        "currency": account.currency,
+        "account_type": account.account_type,
+        "created_at": account.created_at
+    }
+
+
+@router.get("/history")
+async def get_account_history(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Any:
+    """Récupère l'historique du solde du compte."""
+    result = await db.execute(
+        select(AccountHistory)
+        .join(Account, AccountHistory.account_id == Account.id)
+        .filter(Account.user_id == current_user.id)
+        .order_by(AccountHistory.timestamp.asc())
+    )
+    history = result.scalars().all()
+    
+    if not history:
+        # Retourner au moins le solde initial
+        result = await db.execute(select(Account).filter(Account.user_id == current_user.id))
+        account = result.scalar_one_or_none()
+        return [{"timestamp": account.created_at, "balance": account.balance}]
+        
+    return [{"timestamp": h.timestamp, "balance": h.balance} for h in history]

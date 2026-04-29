@@ -11,7 +11,7 @@ from enum import Enum
 from datetime import datetime
 
 from quantum.domain.data.downloader import DataDownloader
-from quantum.domain.data.feature_engine import TechnicalIndicators
+from quantum.domain.data.feature_engine import FeatureEngine
 from quantum.domain.core.regime_detector import RegimeDetector
 
 
@@ -55,7 +55,7 @@ class TradeValidator:
     
     def __init__(self):
         self.downloader = DataDownloader()
-        self.indicators = TechnicalIndicators()
+        self.indicators = FeatureEngine()
         self.regime_detector = RegimeDetector()
     
     def validate_trade(

@@ -28,7 +28,7 @@ class TestPaperTradingSimulator:
     @pytest.fixture
     def simulator(self):
         return PaperTradingSimulator(
-            initial_capital=10000,
+            initial_capital=1000000,
             commission_pct=0.001,
             slippage_pct=0.0005,
             save_trades=False
@@ -36,8 +36,8 @@ class TestPaperTradingSimulator:
     
     def test_initialization(self, simulator):
         """Initialisation doit être correcte."""
-        assert simulator.capital == 10000
-        assert simulator.initial_capital == 10000
+        assert simulator.capital == 1000000
+        assert simulator.initial_capital == 1000000
         assert len(simulator.positions) == 0
         assert len(simulator.trades) == 0
     

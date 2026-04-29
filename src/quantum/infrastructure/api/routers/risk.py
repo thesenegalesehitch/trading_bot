@@ -1,38 +1,47 @@
-"""
-Routeur de gestion du risque et calcul du VaR (Value at Risk).
-"""
-
-from typing import Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, Body
-
-from quantum.infrastructure.api.core.deps import get_current_user
-from quantum.infrastructure.db.models import User
-from quantum.domain.risk.var_calculator import VaRCalculator
+from typing import Any
+from fastapi import APIRouter, Depends
+import numpy as np
+from pydantic import BaseModel
 
 router = APIRouter()
-var_calculator = VaRCalculator()
 
-@router.post("/var")
-async def calculate_portfolio_var(
-    portfolio: Dict[str, float] = Body(
-        ..., 
-        example={"EURUSD=X": 10000.0, "BTC-USD": 5000.0},
-        description="Dictionnaire des positions {Symbole: Montant en USD}"
-    ),
-    current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Calcule la Value at Risk (VaR) d'un portefeuille via 3 méthodes:
-    Historique, Paramétrique, et Monte Carlo.
-    """
-    if not portfolio:
-        raise HTTPException(status_code=400, detail="Le portefeuille est vide.")
-        
-    try:
-        results = var_calculator.calculate_combined_var(portfolio)
-        return {
-            "portfolio_value": sum(portfolio.values()),
-            "var_results": results
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+class PositionSizeRequest(BaseModel):
+    capital: float
+    risk_percent: float
+    entry_price: float
+    stop_loss: float
+
+class KellyRequest(BaseModel):
+    win_rate: float
+    win_loss_ratio: float
+
+@router.post("/position-size")
+async def calculate_position_size(req: PositionSizeRequest):
+    risk_amount = req.capital * (req.risk_percent / 100)
+    risk_per_unit = abs(req.entry_price - req.stop_loss)
+    if risk_per_unit == 0: return {"size": 0}
+    size = risk_amount / risk_per_unit
+    return {
+        "quantity": round(size, 4),
+        "risk_amount": round(risk_amount, 2),
+        "notional_value": round(size * req.entry_price, 2)
+    }
+
+@router.post("/kelly")
+async def calculate_kelly(req: KellyRequest):
+    # Kelly % = W - [(1 - W) / R]
+    # W = Win rate, R = Win/Loss ratio
+    if req.win_loss_ratio == 0: return {"kelly_percent": 0}
+    kelly = req.win_rate - ((1 - req.win_rate) / req.win_loss_ratio)
+    return {
+        "kelly_percent": round(max(0, kelly) * 100, 2),
+        "suggested_risk": round(max(0, kelly / 2) * 100, 2) # Half-Kelly safe
+    }
+
+@router.get("/var-info")
+async def get_var_info():
+    return {
+        "description": "La Value at Risk (VaR) mesure la perte potentielle maximale sur un horizon de temps donné avec un niveau de confiance spécifique.",
+        "levels": [0.95, 0.99],
+        "methods": ["Historique", "Paramétrique", "Monte Carlo"]
+    }

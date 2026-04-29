@@ -18,6 +18,10 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from datetime import timedelta
 import os
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement depuis .env
+load_dotenv()
 
 
 @dataclass
@@ -464,19 +468,24 @@ class DatabaseConfig:
 class AuthConfig:
     """Configuration authentification JWT."""
     SECRET_KEY: str = field(default_factory=lambda: os.getenv(
-        'JWT_SECRET_KEY', 'CHANGE_ME_IN_PRODUCTION_quantum_trading_2026'
+        'JWT_SECRET_KEY', 'DEV_INSECURE_SECRET_KEY_FOR_LOCAL_ONLY'
     ))
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     DEMO_ACCOUNT_INITIAL_BALANCE: float = 1_000_000.0  # $1M virtuel pour comptes démo
 
+    def __post_init__(self):
+        # Sécurité critique: Empêcher le démarrage en mode pro avec la clé par défaut
+        if self.SECRET_KEY == 'DEV_INSECURE_SECRET_KEY_FOR_LOCAL_ONLY' and os.getenv('MODE') == 'production':
+            raise ValueError("ERREUR DE SÉCURITÉ: Vous devez définir JWT_SECRET_KEY dans .env pour la production.")
+
 
 @dataclass
 class SystemConfig:
     """Configuration système globale."""
     # Mode de fonctionnement
-    MODE: str = "backtest"  # "backtest", "paper", "live"
+    MODE: str = field(default_factory=lambda: os.getenv('MODE', 'dev'))  # 'dev', 'production', 'backtest'
     
     # Logging
     LOG_LEVEL: str = "INFO"

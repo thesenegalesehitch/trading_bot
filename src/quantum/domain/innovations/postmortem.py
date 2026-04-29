@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from quantum.domain.data.downloader import DataDownloader
-from quantum.domain.data.feature_engine import TechnicalIndicators
+from quantum.domain.data.feature_engine import FeatureEngine
 from quantum.domain.core.regime_detector import RegimeDetector
 from quantum.domain.coach.history import Trade, TradeOutcome
 
@@ -58,7 +58,7 @@ class AutoPostMortem:
     
     def __init__(self):
         self.downloader = DataDownloader()
-        self.indicators = TechnicalIndicators()
+        self.indicators = FeatureEngine()
         self.regime_detector = RegimeDetector()
     
     def analyze(self, trade: Trade) -> PostMortemAnalysis:

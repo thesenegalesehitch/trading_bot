@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 from pydantic import BaseModel, EmailStr
 
 from quantum.infrastructure.db.session import get_db
-from quantum.infrastructure.db.models import User, Account
+from quantum.infrastructure.db.models import User, Account, AccountHistory
 from quantum.infrastructure.api.core import security
 from quantum.infrastructure.api.core.deps import get_current_user
 
@@ -66,6 +66,12 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> A
         currency="USD"
     )
     db.add(demo_account)
+    await db.commit()
+    await db.refresh(demo_account)
+    
+    # Historique initial
+    history = AccountHistory(account_id=demo_account.id, balance=demo_account.balance)
+    db.add(history)
     await db.commit()
     
     return user

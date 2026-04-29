@@ -47,6 +47,13 @@ async def get_ict_setups(
                 "target": t.ifvg_entry.target_1,
                 "risk_reward": t.ifvg_entry.risk_reward,
                 "killzone": t.killzone,
+                "reason": f"Sweep de liquidité {t.sweep.liquidity_level.type} suivi d'un MSS {t.mss.direction} dans la Killzone {t.killzone}.",
+                "sequence": {
+                    "liquidity_swept": t.sweep.liquidity_level.type,
+                    "sweep_price": t.sweep.sweep_price_high if t.direction == "SELL" else t.sweep.sweep_price_low,
+                    "fvg_tap": t.fvg_tap.htf_timeframe,
+                    "mss_impulse": f"{t.mss.impulsive_candle_size*100:.1f}%"
+                }
             } for t in trades
         ]
     }

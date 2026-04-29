@@ -26,9 +26,8 @@ class MockSession:
     
     async def execute(self, query):
         # Simulation basique 
-        # Si on demande la route register et que l'utilisateur existe déjà
-        # on retourne soit None soit un User moqué selon l'email
-        q_str = str(query)
+        # Compile la requete avec ses parametres pour verifier l'email
+        q_str = str(query.compile(compile_kwargs={"literal_binds": True}))
         if "test@quantum.com" in q_str:
             # Email déjà pris
             return MockResult(User(id=1, email="test@quantum.com", hashed_password="hashed"))
@@ -52,6 +51,10 @@ class MockSession:
     async def refresh(self, obj):
         if hasattr(obj, 'id') and obj.id is None:
             obj.id = 999
+        if hasattr(obj, 'is_active') and obj.is_active is None:
+            obj.is_active = True
+        if hasattr(obj, 'is_superuser') and obj.is_superuser is None:
+            obj.is_superuser = False
 
 async def override_get_db():
     try:

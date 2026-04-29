@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,46 +11,66 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import { tradingApi } from '@/lib/api';
 
 export default function TradePage() {
   const [symbol, setSymbol] = useState('BTC-USD');
   const [quantity, setQuantity] = useState('0.1');
   const [side, setSide] = useState('BUY');
   const [loading, setLoading] = useState(false);
+  const [account, setAccount] = useState<any>(null);
   
-  const [positions, setPositions] = useState([
-    { id: 1, symbol: 'EURUSD=X', side: 'BUY', qty: 100000, entry: 1.0854, current: 1.0892, pnl: 380, status: 'OPEN' },
-    { id: 2, symbol: 'TSLA', side: 'SELL', qty: 50, entry: 210.5, current: 205.1, pnl: 270, status: 'OPEN' },
-  ]);
+  const [positions, setPositions] = useState<any[]>([]);
+
+  const fetchPositions = async () => {
+    try {
+      const [posRes, accRes] = await Promise.all([
+        tradingApi.getPositions(),
+        tradingApi.getAccount()
+      ]);
+      setPositions(posRes.data);
+      setAccount(accRes.data);
+    } catch (error) {
+      console.error("Failed to fetch positions", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPositions();
+    const interval = setInterval(fetchPositions, 10000); // Rafraîchir toutes les 10s
+    return () => clearInterval(interval);
+  }, []);
 
   const handleTrade = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    // Simuler le délai API
-    setTimeout(() => {
-      const newPos = {
-        id: Date.now(),
-        symbol: symbol.toUpperCase(),
+    try {
+      await tradingApi.openTrade({
+        symbol: symbol,
         side: side,
-        qty: parseFloat(quantity),
-        entry: 64200.50, // Prix fictif
-        current: 64200.50,
-        pnl: 0,
-        status: 'OPEN'
-      };
-      setPositions([...positions, newPos]);
+        quantity: parseFloat(quantity)
+      });
       toast.success(`Ordre exécuté : ${side} ${quantity} ${symbol}`);
+      fetchPositions();
+    } catch (error: any) {
+      toast.error('Erreur d\'exécution', { 
+        description: error.response?.data?.detail || 'Impossible d\'exécuter l\'ordre.' 
+      });
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
-  const closePosition = (id: number) => {
+  const closePosition = async (id: number) => {
     toast.info('Clôture de la position en cours...');
-    setTimeout(() => {
-      setPositions(positions.filter(p => p.id !== id));
+    try {
+      await tradingApi.closeTrade(id);
       toast.success('Position clôturée avec succès.');
-    }, 600);
+      fetchPositions();
+    } catch (error) {
+      toast.error('Erreur lors de la clôture');
+    }
   };
 
   return (
@@ -59,7 +79,7 @@ export default function TradePage() {
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Trading Démo</h1>
-          <p className="text-muted-foreground">Exécutez vos stratégies en environnement simulé (Fonds: $1,015,420).</p>
+          <p className="text-muted-foreground">Exécutez vos stratégies en environnement simulé (Fonds: ${account?.balance.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '...'}).</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -149,11 +169,11 @@ export default function TradePage() {
                               {pos.side}
                             </Badge>
                           </TableCell>
-                          <TableCell>{pos.qty}</TableCell>
-                          <TableCell>${pos.entry.toLocaleString()}</TableCell>
-                          <TableCell>${pos.current.toLocaleString()}</TableCell>
+                          <TableCell>{pos.quantity}</TableCell>
+                          <TableCell>${pos.price.toLocaleString()}</TableCell>
+                          <TableCell>--</TableCell>
                           <TableCell className={`text-right font-bold ${pos.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                            {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toLocaleString()}
+                            {pos.pnl !== undefined ? (pos.pnl >= 0 ? '+' : '') + pos.pnl.toLocaleString() : '--'}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm" onClick={() => closePosition(pos.id)} className="text-red-400 hover:text-red-500 hover:bg-red-400/10 h-8 px-2">

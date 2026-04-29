@@ -9,21 +9,29 @@ from datetime import datetime, timedelta
 from typing import Optional, Union, Any
 
 import jwt
-from passlib.context import CryptContext
+import bcrypt
+import hashlib
 
 from quantum.shared.config.settings import config
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Vérifie un mot de passe en clair par rapport à son hachage."""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        # Pre-hash pour contourner la limite de 72 caractères de bcrypt
+        pwd_hash = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+        return bcrypt.checkpw(pwd_hash.encode('utf-8'), hashed_password.encode('utf-8'))
+    except ValueError:
+        return False
 
 
 def get_password_hash(password: str) -> str:
     """Génère un hachage bcrypt à partir d'un mot de passe en clair."""
-    return pwd_context.hash(password)
+    # Pre-hash pour contourner la limite de 72 caractères de bcrypt
+    pwd_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_hash.encode('utf-8'), salt).decode('utf-8')
 
 
 def create_access_token(
