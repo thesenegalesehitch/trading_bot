@@ -9,7 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from quantum.infrastructure.db.session import init_db, close_db
-from quantum.infrastructure.api.routers import auth, market, analysis, trading, risk
+from quantum.infrastructure.api.routers import auth, market, analysis, trading, risk, academy, backtest, journal
+
+from quantum.shared.config.settings import config
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +35,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configuration CORS
+# Configuration CORS restrictive
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En production, spécifier les origines (ex: http://localhost:3000)
+    allow_origins=["http://localhost:3000"],  # Uniquement le frontend local par défaut
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -48,6 +50,9 @@ app.include_router(market.router, prefix="/api/v1/market", tags=["Données March
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analyse Technique"])
 app.include_router(trading.router, prefix="/api/v1/trading", tags=["Trading Démo"])
 app.include_router(risk.router, prefix="/api/v1/risk", tags=["Gestion du Risque"])
+app.include_router(academy.router, prefix="/api/v1/academy", tags=["Académie"])
+app.include_router(backtest.router, prefix="/api/v1/backtest", tags=["Backtesting"])
+app.include_router(journal.router, prefix="/api/v1/journal", tags=["Journal de Trading"])
 
 @app.get("/")
 async def root():
@@ -61,7 +66,12 @@ async def global_exception_handler(request, exc):
     logger.error(f"Erreur serveur globale: {exc}")
     return JSONResponse(
         status_code=500,
-        content={"success": False, "message": "Erreur interne du serveur", "detail": str(exc)}
+        content={
+            "success": False, 
+            "message": "Une erreur interne est survenue. Veuillez contacter le support.",
+            # En production, on ne renvoie pas 'detail' pour éviter les fuites d'info
+            "detail": str(exc) if config.system.MODE == "dev" else None 
+        }
     )
 
 if __name__ == "__main__":
