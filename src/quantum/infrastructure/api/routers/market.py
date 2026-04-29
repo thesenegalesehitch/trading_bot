@@ -3,8 +3,11 @@ Routeur de données de marché (klines, ticker).
 """
 
 from typing import Any, List, Dict
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
+import asyncio
+import json
+import pandas as pd
 
 from quantum.infrastructure.api.core.deps import get_current_user
 from quantum.infrastructure.db.models import User
@@ -14,6 +17,9 @@ from quantum.domain.data.feature_engine import FeatureEngine
 router = APIRouter()
 downloader = DataDownloader()
 feature_engine = FeatureEngine()
+
+# Active connections for WebSocket streaming
+active_connections: List[WebSocket] = []
 
 # Model
 class KlineData(BaseModel):
@@ -91,3 +97,39 @@ async def get_indicators(
     # Filtre pour garder les colonnes pertinentes
     indicators = {k: float(v) for k, v in last_row.items() if isinstance(v, (int, float))}
     return indicators
+
+@router.websocket("/stream/{symbol}")
+async def websocket_endpoint(websocket: WebSocket, symbol: str):
+    """
+    Endpoint WebSocket pour le streaming de prix en temps réel.
+    Pour l'instant, simule un flux de ticks aléatoires autour du dernier prix connu.
+    """
+    await websocket.accept()
+    active_connections.append(websocket)
+    try:
+        # Récupérer le dernier prix (simulation)
+        df = downloader.get_data(symbol, period="1d", interval="1m")
+        last_price = float(df['Close'].iloc[-1]) if not df.empty else 100.0
+        
+        while True:
+            # Simulation d'un tick (±0.1%)
+            import random
+            variation = last_price * random.uniform(-0.001, 0.001)
+            last_price += variation
+            
+            data = {
+                "symbol": symbol,
+                "price": round(last_price, 2),
+                "timestamp": pd.Timestamp.now(tz='UTC').isoformat()
+            }
+            
+            await websocket.send_text(json.dumps(data))
+            await asyncio.sleep(1)  # Tick chaque seconde
+            
+    except WebSocketDisconnect:
+        active_connections.remove(websocket)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"WebSocket error: {e}")
+        if websocket in active_connections:
+            active_connections.remove(websocket)
