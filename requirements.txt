@@ -167,3 +167,7 @@ mypy>=1.14.0               # Type checking
 #   Windows: Télécharger DLL depuis ta-lib.org
 #
 # ============================================
+
+# Production Database
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
