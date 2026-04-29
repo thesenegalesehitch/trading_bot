@@ -105,7 +105,7 @@ class FullSetupTrade:
     confidence: float
     
     def to_dict(self) -> Dict:
-        """Serialize pour affichage/alerte."""
+        """Serialize pour affichage/alerte avec décomposition logique."""
         return {
             "setup_id": self.setup_id,
             "symbol": self.symbol,
@@ -123,6 +123,7 @@ class FullSetupTrade:
             "volume_spike": self.volume_spike_confirmed,
             "detected_at": self.detected_at.isoformat(),
             "timeframe": self.timeframe,
+            "reason": self.get_decomposition_text(),
             "sequence": {
                 "swept_level": self.sweep.liquidity_level.type,
                 "sweep_price": self.sweep.sweep_price_high if self.direction == "SELL" else self.sweep.sweep_price_low,
@@ -131,6 +132,16 @@ class FullSetupTrade:
                 "ifvg_quality": "HIGH" if self.confidence > 80 else "MEDIUM" if self.confidence > 50 else "LOW"
             }
         }
+
+    def get_decomposition_text(self) -> str:
+        """Explique étape par étape pourquoi ce trade a été détecté."""
+        steps = [
+            f"1. Prise de liquidité ({self.sweep.liquidity_level.type}) : Le prix a 'nettoyé' les stops à {self.sweep.sweep_price_high if self.direction == 'SELL' else self.sweep.sweep_price_low:.5f}.",
+            f"2. HTF Tap : Le prix a rebondi sur un FVG de timeframe supérieur ({self.fvg_tap.htf_timeframe}), confirmant l'intérêt institutionnel.",
+            f"3. MSS (Market Structure Shift) : Une cassure de structure impulsive ({self.mss.impulsive_candle_size*100:.1f}% corps) a validé le changement de direction.",
+            f"4. IFVG Entry : L'entrée est placée sur l'inversion du dernier déséquilibre, offrant un RR de 1:{self.ifvg_entry.risk_reward:.1f}."
+        ]
+        return " | ".join(steps)
 
 
 class KillZoneAnalyzer:
