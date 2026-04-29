@@ -22,6 +22,9 @@ class ExecutionManager:
         
         self._binance: Optional[BinanceExchange] = None
         self._ibkr: Optional[IBKRExchange] = None
+        
+        from quantum.shared.utils.audit import AuditLogger
+        self.audit_logger = AuditLogger()
 
     def _get_binance(self) -> BinanceExchange:
         if not self._binance:
@@ -44,6 +47,12 @@ class ExecutionManager:
             # 1. Vérification Live
             if not self.live_trading:
                 logger.info(f"🚫 SIMULATION: {signal} {symbol}")
+                self.audit_logger.log_trade_execution(
+                    symbol=symbol,
+                    side=signal,
+                    execution_type="SIMULATED",
+                    details={"price": price, "confidence": confidence}
+                )
                 return {"status": "simulated"}
 
             # 2. Circuit Breaker check
@@ -73,6 +82,10 @@ class ExecutionManager:
         
         logger.info(f"🚀 Transmission ORDRE CRYPTO sur Binance: {side} {symbol}")
         # result = exchange.create_market_order(symbol, side, quantity=...)
+        self.audit_logger.log_trade_execution(
+            symbol=symbol, side=side, execution_type="LIVE",
+            details={"exchange": "Binance", "confidence": confidence}
+        )
         return {"status": "success", "exchange": "Binance", "side": side}
 
     async def _execute_tradfi(self, symbol: str, signal: str, confidence: float) -> Dict:

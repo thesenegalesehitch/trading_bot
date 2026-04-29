@@ -11,7 +11,7 @@ from enum import Enum
 from datetime import datetime
 
 from quantum.domain.data.downloader import DataDownloader
-from quantum.domain.data.feature_engine import TechnicalIndicators
+from quantum.domain.data.feature_engine import FeatureEngine
 from quantum.domain.core.regime_detector import RegimeDetector
 
 
@@ -55,7 +55,7 @@ class TradeValidator:
     
     def __init__(self):
         self.downloader = DataDownloader()
-        self.indicators = TechnicalIndicators()
+        self.indicators = FeatureEngine()
         self.regime_detector = RegimeDetector()
     
     def validate_trade(
@@ -380,7 +380,8 @@ class TradeValidator:
         score: float,
         is_valid: bool,
         issues: List[ValidationIssue]
-    ) -> Génère un résumé de la validation."""
+    ) -> str:
+        """Génère un résumé de la validation."""
         if score >= 80:
             quality = "excellent"
         elif score >= 60:
@@ -389,23 +390,26 @@ class TradeValidator:
             quality = "moyen"
         else:
             quality = "faible"
-        
+
         error_count = sum(1 for i in issues if i.severity == ValidationSeverity.ERROR)
         warning_count = sum(1 for i in issues if i.severity == ValidationSeverity.WARNING)
-        
+
         summary = f"Trade {quality} (score: {score:.0f}/100)"
         if error_count > 0:
             summary += f" - {error_count} erreur(s) à corriger"
         if warning_count > 0:
             summary += f" - {warning_count} avertissement(s)"
-        
-        """Génère un résumé de la validation."""
+
+        return summary
+
+
+def validate_trade_example():
     """Exemple d'utilisation du validateur."""
     validator = TradeValidator()
-    
+
     # Exemple: Trade BUY sur EURUSD
     result = validator.validate_trade(
-        symbol="EURUSD",
+        symbol="EURUSD=X",
         direction="BUY",
         entry_price=1.0850,
         stop_loss=1.0820,
@@ -413,7 +417,7 @@ class TradeValidator:
         account_balance=10000,
         risk_per_trade=2.0
     )
-    
+
     print(f"\n{'='*60}")
     print(f"VALIDATION DE TRADE")
     print(f"{'='*60}")
@@ -424,7 +428,7 @@ class TradeValidator:
     for issue in result.issues:
         print(f"  [{issue.severity.value.upper()}] {issue.category}: {issue.message}")
         print(f"    → {issue.recommendation}")
-    
+
     if result.improvements:
         print(f"\nAméliorations suggérées:")
         for imp in result.improvements:

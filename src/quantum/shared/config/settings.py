@@ -18,6 +18,10 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from datetime import timedelta
 import os
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement depuis .env
+load_dotenv()
 
 
 @dataclass
@@ -325,12 +329,14 @@ class MLConfig:
     })
     
     # Paramètres Ensemble
-    USE_ENSEMBLE: bool = True
+    USE_ENSEMBLE: bool = True  # Utiliser l'ensemble avancé par défaut
     ENSEMBLE_MODELS: List[str] = field(default_factory=lambda: [
-        "xgboost", "lightgbm", "catboost", "random_forest"
+        "xgboost", "lightgbm", "random_forest"  # CatBoost désactivé pour compatibilité sklearn/Python 3.13
     ])
     ENSEMBLE_VOTING: str = "soft"  # "hard" or "soft"
     CALIBRATE_PROBABILITIES: bool = True
+    ENSEMBLE_OPTIMIZE: bool = True  # Optimiser les hyperparamètres via Optuna
+    ENSEMBLE_TRIALS_PER_MODEL: int = 20  # Essais Optuna par modèle
     
     # Validation croisée
     CV_SPLITS: int = 5
@@ -347,17 +353,9 @@ class MLConfig:
         "divergence_score", "wyckoff_phase"
     ])
     
-    # Optimisation
+    # Optimisation Optuna
     USE_OPTUNA: bool = True
     OPTUNA_TRIALS: int = 50
-
-    # Ensemble de modèles
-    USE_ENSEMBLE: bool = True  # Utiliser l'ensemble avancé par défaut
-    ENSEMBLE_MODELS: List[str] = field(default_factory=lambda: [
-        "xgboost", "lightgbm", "random_forest"  # CatBoost désactivé pour compatibilité sklearn
-    ])
-    ENSEMBLE_OPTIMIZE: bool = True  # Optimiser les hyperparamètres
-    ENSEMBLE_TRIALS_PER_MODEL: int = 20  # Essais Optuna par modèle
 
 
 @dataclass
@@ -452,10 +450,42 @@ class AlertConfig:
 
 
 @dataclass
+class DatabaseConfig:
+    """Configuration base de données PostgreSQL."""
+    DATABASE_URL: str = field(default_factory=lambda: os.getenv(
+        'DATABASE_URL', 'postgresql+asyncpg://quantum:quantum@localhost:5432/quantum_trading'
+    ))
+    DATABASE_URL_SYNC: str = field(default_factory=lambda: os.getenv(
+        'DATABASE_URL_SYNC', 'postgresql://quantum:quantum@localhost:5432/quantum_trading'
+    ))
+    POOL_SIZE: int = 10
+    MAX_OVERFLOW: int = 20
+    POOL_TIMEOUT: int = 30
+    ECHO_SQL: bool = False  # Activer pour debug SQL
+
+
+@dataclass
+class AuthConfig:
+    """Configuration authentification JWT."""
+    SECRET_KEY: str = field(default_factory=lambda: os.getenv(
+        'JWT_SECRET_KEY', 'DEV_INSECURE_SECRET_KEY_FOR_LOCAL_ONLY'
+    ))
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    DEMO_ACCOUNT_INITIAL_BALANCE: float = 1_000_000.0  # $1M virtuel pour comptes démo
+
+    def __post_init__(self):
+        # Sécurité critique: Empêcher le démarrage en mode pro avec la clé par défaut
+        if self.SECRET_KEY == 'DEV_INSECURE_SECRET_KEY_FOR_LOCAL_ONLY' and os.getenv('MODE') == 'production':
+            raise ValueError("ERREUR DE SÉCURITÉ: Vous devez définir JWT_SECRET_KEY dans .env pour la production.")
+
+
+@dataclass
 class SystemConfig:
     """Configuration système globale."""
     # Mode de fonctionnement
-    MODE: str = "backtest"  # "backtest", "paper", "live"
+    MODE: str = field(default_factory=lambda: os.getenv('MODE', 'dev'))  # 'dev', 'production', 'backtest'
     
     # Logging
     LOG_LEVEL: str = "INFO"
@@ -484,6 +514,8 @@ class Config:
     risk = RiskConfig()
     backtest = BacktestConfig()
     alerts = AlertConfig()
+    database = DatabaseConfig()
+    auth = AuthConfig()
     system = SystemConfig()
 
 

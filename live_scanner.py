@@ -203,6 +203,7 @@ def analyze_market(data: Dict) -> None:
     
     color = GREEN if change >= 0 else RED
     print(f"\nPrix: {price:.5f} ({color}{change:+.2f}%{END})")
+    print(f"{YELLOW}(Donnees yfinance avec retard ~15min){END}")
     
     # Killzone
     killzone = get_killzone_status()
@@ -266,7 +267,7 @@ def analyze_market(data: Dict) -> None:
     if bullish_signals > bearish_signals:
         print(f"  {GREEN}Tendance haussiere ({bullish_signals} signaux){END}")
     elif bearish_signals > bullish_signals:
-        print(f"  {RED}Tendance baissiere ({bearish_signaux} signaux){END}")
+        print(f"  {RED}Tendance baissiere ({bearish_signals} signaux){END}")
     else:
         print(f"  {YELLOW}Neutre{END}")
     

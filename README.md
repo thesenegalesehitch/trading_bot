@@ -1,124 +1,75 @@
-# ICT Trading Education Tool 🎓
+# 🌌 Quantum Trading System (Evolution v2.0)
 
-> Outil gratuit pour apprendre les concepts de trading ICT, SMC, Wyckoff, Ichimoku et autres stratégies.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 
-**Pour ceux qui n'ont pas les moyens de payer des formations chères.**
+**Quantum** est une plateforme de trading institutionnelle 100% gratuite et open-source. Elle permet aux traders particuliers d'utiliser les mêmes concepts algorithmiques que les banques (SMC/ICT) tout en offrant un parcours éducatif complet.
 
----
+![Quantum Dashboard](https://images.unsplash.com/photo-1611974717482-58100010887e?auto=format&fit=crop&q=80&w=1200)
 
-## C'est quoi ce projet ?
+## 🚀 Fonctionnalités Clés
 
-Un outil **gratuit et open-source** qui te permet de:
-- 📊 **Visualiser** les concepts ICT en temps réel sur les graphiques
-- 📚 **Apprendre** avec des explications claires de chaque concept
-- 🧪 **Pratiquer** dans un mode sandbox sans risque
-- 🔍 **Analyser** tes trades passés pour comprendre tes erreurs
+*   **⚡ Scanner ICT/SMC Ultra-Rapide** : Détection automatique des Fair Value Gaps (FVG), Order Blocks (OB) et Market Structure Shifts (MSS).
+*   **🎓 Académie Quantum** : Un cursus complet sur la psychologie des marchés et la gestion des risques avec quizz interactifs.
+*   **📊 Analyse Institutionnelle** : Graphiques professionnels via `lightweight-charts` avec superposition des zones algorithmiques.
+*   **🛡️ Gestion des Risques** : Calculateur de position, Kelly Criterion et Value at Risk (VaR).
+*   **📓 Journal de Trading & Backtesting** : Validez vos stratégies et traquez votre discipline émotionnelle.
 
----
+## 🛠️ Installation Locale (Local-First)
 
-## Concepts enseignés
+### Pré-requis
+- Python 3.13+
+- Node.js 20+
+- Docker (Optionnel)
 
-| Concept | Description |
-|---------|-------------|
-| **ICT** | Inner Circle Trader - Order Blocks, FVG, MSS |
-| **SMC** | Smart Money Concepts - Smart Money vs Dumb Money |
-| **Wyckoff** | Phases d'accumulation et distribution |
-| **Ichimoku** | Nuage de tendance japonais |
-| **Divergences** | RSI, MACD, OBV |
+### Installation Rapide
 
----
+1. **Cloner le dépôt** :
+   ```bash
+   git clone https://github.com/votre-username/quantum-trading-system.git
+   cd quantum-trading-system
+   ```
 
-## Installation
+2. **Configuration Backend** :
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   cp .env.example .env
+   # Modifiez le .env avec vos clés si nécessaire
+   ```
 
-```bash
-# Clone le projet
-git clone https://github.com/thesenegalesehitch/trading_bot.git
-cd trading_bot
+3. **Initialisation de la DB** :
+   ```bash
+   export PYTHONPATH=$PYTHONPATH:$(pwd)/src
+   python scripts/init_db.py
+   python scripts/academy_init.py
+   ```
 
-# Crée un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou: venv\Scripts\activate  # Windows
+4. **Lancement Frontend** :
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-# Installe les dépendances
-pip install -r requirements.txt
-```
-
----
-
-## Utilisation rapide
-
-### Mode Menu Interactif (Pour débutants)
-
-```bash
-python run_ict_menu.py
-```
-
-Ce menu interactif te guide pas à pas:
-1. Choisis un symbole (EURUSD, BTC, etc.)
-2. Choisis un timeframe
-3. Apprends chaque concept ICT étape par étape
-
-### Mode Scanner
+## 🐋 Docker (Recommandé pour Production Locale)
 
 ```bash
-python run_ict_scanner.py
+docker-compose up --build
 ```
 
-Analyse automatiquement les graphiques et affiche:
-- Order Blocks détectés
-- Fair Value Gaps (FVG)
-- Market Structure Shifts (MSS)
-- Signaux de tendance
+## 🤝 Contribuer
 
-### Interface Streamlit
+Le projet est **Open-Source**. Nous accueillons toutes les contributions :
+- Amélioration des algorithmes de détection (SMC/ICT).
+- Ajout de nouveaux cours dans l'Académie.
+- Optimisation des performances du scanner.
 
-```bash
-streamlit run src/quantum/application/ui/streamlit_app.py
-```
+## 📄 Licence
 
-Interface graphique pour:
-- Visualisation interactive
-- Backtest de stratégies
-- Analyse de trades
+Ce projet est sous licence **MIT**. Vous êtes libre de l'utiliser, de le modifier et de le distribuer gratuitement.
 
 ---
-
-## Pour qui ?
-
-- ✅ **Débutants** qui veulent apprendre le trading
-- ✅ **Traders autodidactes** sans budget pour les formations
-- ✅ **Ceux qui veulent comprendre** les concepts ICT/SMC
-- ❌ **Ceux qui cherchent un bot de trading rentable** — Ce n'est PAS un robot qui gagne de l'argent
-
----
-
-## Gratuit et Open Source
-
-Ce projet est **100% gratuit**. Pourquoi ?
-- Le trading est déjà assez difficile financièrement
-- Les formations coûtent souvent $500-$5000
-- Tout le monde devrait avoir accès à l'éducation
-
-**Contribue** en partageant, en Forkant, en améliorant !
-
----
-
-## Avertissement
-
-⚠️ **Ceci est un outil pédagogique, pas un conseil financier.**
-- Le trading comporte des risques importants
-- Ne trade jamais avec de l'argent que tu ne peux pas perdre
-- backtest ≠ résultats futurs
-
----
-
-## Prochaines étapes
-
-1. Lance `python run_ict_menu.py` pour commencer
-2. Lis les docs dans `docs/`
-3. Explore les indicateurs dans `src/quantum/domain/analysis/`
-
----
-
-**Fait avec ❤️ pour l'éducation trading accessible à tous.**
+*Créé avec ❤️ pour la communauté des traders quantitatifs.*

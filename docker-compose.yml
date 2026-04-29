@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Base de données de production
+  postgres:
+    image: postgres:15-alpine
+    container_name: quantum_postgres
+    environment:
+      POSTGRES_USER: quantum
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-quantum_secure_pass}
+      POSTGRES_DB: quantum_trading
+    ports:
+      - "5432:5432"
+    volumes:
+      - quantum_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantum"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Cache multi-niveaux et Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: quantum_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - quantum_redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  # Backend (API & Scanner)
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: quantum_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://quantum:${DB_PASSWORD:-quantum_secure_pass}@postgres:5432/quantum_trading
+      - DATABASE_URL_SYNC=postgresql://quantum:${DB_PASSWORD:-quantum_secure_pass}@postgres:5432/quantum_trading
+      - REDIS_URL=redis://redis:6379/0
+      - MODE=production
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: quantum_frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  quantum_pg_data:
+  quantum_redis_data:

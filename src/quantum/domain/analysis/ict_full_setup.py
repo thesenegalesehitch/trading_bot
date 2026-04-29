@@ -105,7 +105,7 @@ class FullSetupTrade:
     confidence: float
     
     def to_dict(self) -> Dict:
-        """Serialize pour affichage/alerte."""
+        """Serialize pour affichage/alerte avec décomposition logique."""
         return {
             "setup_id": self.setup_id,
             "symbol": self.symbol,
@@ -123,6 +123,7 @@ class FullSetupTrade:
             "volume_spike": self.volume_spike_confirmed,
             "detected_at": self.detected_at.isoformat(),
             "timeframe": self.timeframe,
+            "reason": self.get_decomposition_text(),
             "sequence": {
                 "swept_level": self.sweep.liquidity_level.type,
                 "sweep_price": self.sweep.sweep_price_high if self.direction == "SELL" else self.sweep.sweep_price_low,
@@ -131,6 +132,16 @@ class FullSetupTrade:
                 "ifvg_quality": "HIGH" if self.confidence > 80 else "MEDIUM" if self.confidence > 50 else "LOW"
             }
         }
+
+    def get_decomposition_text(self) -> str:
+        """Explique étape par étape pourquoi ce trade a été détecté."""
+        steps = [
+            f"1. Prise de liquidité ({self.sweep.liquidity_level.type}) : Le prix a 'nettoyé' les stops à {self.sweep.sweep_price_high if self.direction == 'SELL' else self.sweep.sweep_price_low:.5f}.",
+            f"2. HTF Tap : Le prix a rebondi sur un FVG de timeframe supérieur ({self.fvg_tap.htf_timeframe}), confirmant l'intérêt institutionnel.",
+            f"3. MSS (Market Structure Shift) : Une cassure de structure impulsive ({self.mss.impulsive_candle_size*100:.1f}% corps) a validé le changement de direction.",
+            f"4. IFVG Entry : L'entrée est placée sur l'inversion du dernier déséquilibre, offrant un RR de 1:{self.ifvg_entry.risk_reward:.1f}."
+        ]
+        return " | ".join(steps)
 
 
 class KillZoneAnalyzer:
@@ -381,17 +392,17 @@ class MSSDetector:
         sweep_event: SweepEvent
     ) -> Optional[MSSEvent]:
         """
-        Détecte un MSS après un sweep.
-        
-        Le MSS est validé si:
-        - Le prix casse la structure locale (swing high/low)
-        - La bougie de cassure est impulsive (corps > 60% de la range)
+        Détecte un MSS après un sweep avec pré-calcul vectorisé.
         """
-        swing_window = 5
+        # Pré-calcul vectorisé pour la performance
         highs = df['High'].values
         lows = df['Low'].values
         closes = df['Close'].values
         opens = df['Open'].values
+        
+        bodies = np.abs(closes - opens)
+        ranges = highs - lows + 1e-10
+        impulsive_ratios = bodies / ranges
         
         # Fix: sweep_candle peut être 0 (falsy), donc utiliser 'is not None'
         sweep_idx = sweep_event.sweep_candle if sweep_event.sweep_candle is not None else len(df) - 5
@@ -399,19 +410,14 @@ class MSSDetector:
         if direction == "BEARISH":
             # Chercher un swing high à casser
             for i in range(sweep_idx + 2, len(df)):
-                # Calculer la bougie impulsive
-                body = abs(closes[i] - opens[i])
-                total_range = highs[i] - lows[i] + 1e-10
-                impulsive_ratio = body / total_range
+                impulsive_ratio = impulsive_ratios[i]
                 
                 # Vérifier la cassure du swing high
                 recent_highs = highs[max(0, i-10):i]
                 if len(recent_highs) > 3:
-                    swing_high = min(recent_highs)  # Swing high le plus récent
+                    swing_high = np.min(recent_highs)  # Vectorisé via numpy
                     
-                    # Si le prix casse ce swing high avec une bougie impulsive
                     if highs[i] > swing_high and impulsive_ratio > 0.6:
-                        # Vérifier que la bougie ferme sous le swing high
                         if closes[i] < swing_high:
                             return MSSEvent(
                                 timestamp=df.index[i],
@@ -425,13 +431,11 @@ class MSSDetector:
         else:  # BULLISH
             # Chercher un swing low à casser
             for i in range(sweep_idx + 2, len(df)):
-                body = abs(closes[i] - opens[i])
-                total_range = highs[i] - lows[i] + 1e-10
-                impulsive_ratio = body / total_range
+                impulsive_ratio = impulsive_ratios[i]
                 
                 recent_lows = lows[max(0, i-10):i]
                 if len(recent_lows) > 3:
-                    swing_low = max(recent_lows)  # Swing low le plus récent
+                    swing_low = np.max(recent_lows)  # Vectorisé via numpy
                     
                     if lows[i] < swing_low and impulsive_ratio > 0.6:
                         if closes[i] > swing_low:
@@ -707,30 +711,39 @@ class ICTFullSetupDetector:
         volume_ratio: float,
         killzone: str
     ) -> float:
-        """Calcule le score de confluence (0-1)."""
+        """
+        Calcule le Setup Probability Score (SPS) (0-1).
+        C'est un moteur probabiliste évaluant la qualité institutionnelle du trade.
+        """
         score = 0.0
         
-        # Killzone: +0.2
-        score += 0.2
-        
-        # Volume spike: +0.3
+        # 1. Time & Session Confluence (+0.25)
+        # Un trade en Killzone a beaucoup plus de probabilité de suivre l'algorithme bancaire
+        if killzone in ["LONDON", "NY"]:
+            score += 0.25
+            
+        # 2. Volume & Momentum Injection (+0.30)
+        # La validation du "Sponsorship" institutionnel se fait par le volume
         if volume_spike:
-            score += 0.3
+            score += 0.30
         else:
-            score += min(volume_ratio * 0.2, 0.2)
-        
-        # MSS impulsif: +0.2
-        if mss.impulsive_candle_size > 0.7:
-            score += 0.2
+            # Score partiel si le volume est au-dessus de la moyenne mais pas un spike massif
+            score += min(volume_ratio * 0.15, 0.15)
+            
+        # 3. Structural Displacement Quality (+0.25)
+        # Une bougie avec peu de mèches (corps large) indique une forte conviction
+        if mss.impulsive_candle_size > 0.8:
+            score += 0.25
         elif mss.impulsive_candle_size > 0.6:
-            score += 0.1
-        
-        # RR excellent (>3): +0.1
-        if ifvg.risk_reward > 3:
-            score += 0.1
-        elif ifvg.risk_reward > 2:
-            score += 0.05
-        
+            score += 0.15
+            
+        # 4. Risk/Reward & Invalidation Distance (+0.20)
+        # Un bon trade est un trade où l'invalidation est claire et le RR asymétrique
+        if ifvg.risk_reward > 4:
+            score += 0.20
+        elif ifvg.risk_reward > 2.5:
+            score += 0.10
+            
         return min(score, 1.0)
     
     def scan_symbol(

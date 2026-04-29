@@ -725,18 +725,34 @@ class RiskManager:
         return self._optimize_markowitz(prices_df, constraints)
 
     def _optimize_risk_parity(self, prices_df: pd.DataFrame, constraints: Dict) -> Dict:
-        """Optimisation risk parity."""
-        # Simplification: portefeuille équipondéré en risque
+        """Optimisation risk parity — implémentation personnalisée.
+
+        Chaque actif contribue de manière égale au risque total du portefeuille.
+        Utilise les rendements historiques et la matrice de covariance calculée
+        directement via pandas (pyportfolioopt non compatible Python 3.13).
+        """
         n_assets = len(prices_df.columns)
-        weights = {asset: 1.0/n_assets for asset in prices_df.columns}
 
-        # Calculer les métriques
-        mu = expected_returns.mean_historical_return(prices_df)
-        S = risk_models.sample_cov(prices_df)
+        # Calculer les rendements et la covariance manuellement
+        returns = prices_df.pct_change().dropna()
+        mu = returns.mean() * 252  # Rendements annualisés
+        S = returns.cov() * 252    # Covariance annualisée
 
-        portfolio_return = sum(weights[asset] * mu[asset] for asset in weights)
-        portfolio_vol = np.sqrt(sum(weights[asset] * weights[asset2] * S.loc[asset, asset2]
-                                   for asset in weights for asset2 in weights))
+        # Risk Parity : pondérer inversement proportionnel à la volatilité
+        asset_vols = np.sqrt(np.diag(S.values))
+        if np.any(asset_vols == 0):
+            # Fallback : équipondéré si volatilité nulle
+            raw_weights = np.ones(n_assets) / n_assets
+        else:
+            inv_vol = 1.0 / asset_vols
+            raw_weights = inv_vol / inv_vol.sum()
+
+        weights = dict(zip(prices_df.columns, raw_weights))
+
+        # Calculer les métriques du portefeuille
+        w = np.array(list(weights.values()))
+        portfolio_return = float(np.dot(w, mu.values))
+        portfolio_vol = float(np.sqrt(np.dot(w.T, np.dot(S.values, w))))
         sharpe = portfolio_return / portfolio_vol if portfolio_vol > 0 else 0
 
         return {

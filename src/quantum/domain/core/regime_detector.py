@@ -59,7 +59,7 @@ class RegimeDetector:
         adx_period: int = 14,
         atr_period: int = 14,
         lookback: int = 50,
-        trend_threshold: float = 25.0,  # ADX > 25 = trending
+        trend_threshold: float = 20.0,  # ADX > 20 = trending (plus sensible)
         volatility_high_pct: float = 80,  # Percentile > 80 = high vol
         volatility_low_pct: float = 20   # Percentile < 20 = low vol
     ):
@@ -111,10 +111,10 @@ class RegimeDetector:
         )
         
         # Calculer la force de tendance (-100 à +100)
-        if plus_di > minus_di:
-            trend_strength = min(100, adx * (plus_di - minus_di) / 50)
-        else:
-            trend_strength = max(-100, -adx * (minus_di - plus_di) / 50)
+        # Utilise ADX combiné à l'écart DI
+        di_diff = plus_di - minus_di
+        trend_strength = (adx * di_diff / 50) if adx > 15 else 0
+        trend_strength = max(-100, min(100, trend_strength))
         
         # Durée du régime actuel
         self._regime_history.append(regime)
@@ -141,7 +141,7 @@ class RegimeDetector:
         )
     
     def _calculate_adx(self, df: pd.DataFrame) -> Tuple[float, float, float]:
-        """Calcule ADX, +DI et -DI."""
+        """Calcule ADX, +DI et -DI en utilisant le lissage de Wilder."""
         high = df['High'].values
         low = df['Low'].values
         close = df['Close'].values
@@ -161,26 +161,30 @@ class RegimeDetector:
         plus_dm = np.maximum(high[1:] - high[:-1], 0)
         minus_dm = np.maximum(low[:-1] - low[1:], 0)
         
-        # Où l'un est plus grand que l'autre
-        plus_dm[plus_dm < minus_dm] = 0
-        minus_dm[minus_dm < plus_dm] = 0
+        # Appliquer la logique DM : le plus grand gagne
+        plus_dm_mask = (plus_dm > minus_dm) & (plus_dm > 0)
+        minus_dm_mask = (minus_dm > plus_dm) & (minus_dm > 0)
         
-        # Smoothed (EMA)
-        def ema(arr, period):
-            alpha = 2 / (period + 1)
+        plus_dm = np.where(plus_dm_mask, plus_dm, 0)
+        minus_dm = np.where(minus_dm_mask, minus_dm, 0)
+        
+        # Lissage de Wilder (RMA)
+        def wilder_smoothing(arr, period):
             result = np.zeros_like(arr, dtype=float)
-            result[0] = arr[0]
+            if len(arr) == 0: return result
+            result[0] = np.mean(arr[:period]) if len(arr) >= period else arr[0]
+            alpha = 1 / period
             for i in range(1, len(arr)):
-                result[i] = alpha * arr[i] + (1 - alpha) * result[i-1]
+                result[i] = arr[i] * alpha + result[i-1] * (1 - alpha)
             return result
         
-        atr = ema(tr, n)
-        plus_di = 100 * ema(plus_dm, n) / atr
-        minus_di = 100 * ema(minus_dm, n) / atr
+        atr = wilder_smoothing(tr, n)
+        plus_di = 100 * wilder_smoothing(plus_dm, n) / (atr + 1e-10)
+        minus_di = 100 * wilder_smoothing(minus_dm, n) / (atr + 1e-10)
         
         # DX et ADX
         dx = 100 * np.abs(plus_di - minus_di) / (plus_di + minus_di + 1e-10)
-        adx = ema(dx, n)
+        adx = wilder_smoothing(dx, n)
         
         return float(adx[-1]), float(plus_di[-1]), float(minus_di[-1])
     
@@ -199,9 +203,21 @@ class RegimeDetector:
                 abs(low[i] - close[i-1])
             )
         
-        # ATR actuel vs historique
-        current_atr = np.mean(tr[-self.atr_period:])
-        historical_atr = tr[-252:] if len(tr) > 252 else tr  # 1 an
+        # Lissage Wilder pour ATR
+        def wilder_smoothing(arr, period):
+            result = np.zeros_like(arr, dtype=float)
+            if len(arr) == 0: return result
+            result[0] = np.mean(arr[:period]) if len(arr) >= period else arr[0]
+            alpha = 1 / period
+            for i in range(1, len(arr)):
+                result[i] = arr[i] * alpha + result[i-1] * (1 - alpha)
+            return result
+
+        atr_series = wilder_smoothing(tr, self.atr_period)
+        current_atr = atr_series[-1]
+        
+        # Comparer aux 252 dernières bougies
+        historical_atr = atr_series[-252:] if len(atr_series) > 252 else atr_series
         
         percentile = (historical_atr < current_atr).sum() / len(historical_atr) * 100
         

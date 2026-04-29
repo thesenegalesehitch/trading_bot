@@ -10,6 +10,114 @@ import json
 
 Base = declarative_base()
 
+class User(Base):
+    """Utilisateurs de la plateforme."""
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(100))
+    is_active = Column(Boolean, default=True)
+    is_superuser = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+    
+    accounts = relationship("Account", back_populates="user")
+    progress = relationship("UserProgress", back_populates="user")
+
+class Account(Base):
+    """Comptes de trading associés aux utilisateurs (Live vs Demo)."""
+    __tablename__ = 'accounts'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    account_type = Column(String(20), default='DEMO')  # 'DEMO' or 'LIVE'
+    balance = Column(Float, default=1000000.0)  # $1M pour le compte démo par défaut
+    currency = Column(String(10), default='USD')
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+
+    user = relationship("User", back_populates="accounts")
+
+class Course(Base):
+    """Cours éducatifs de la plateforme."""
+    __tablename__ = 'courses'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text)
+    level = Column(String(50))  # Beginner, Intermediate, Advanced
+    order = Column(Integer, default=0)
+    image_url = Column(String(255))
+    
+    lessons = relationship("Lesson", back_populates="course")
+    quizzes = relationship("Quiz", back_populates="course")
+
+class Lesson(Base):
+    """Leçons pour chaque cours éducatif."""
+    __tablename__ = 'lessons'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    course_id = Column(Integer, ForeignKey('courses.id'), nullable=False)
+    title = Column(String(200), nullable=False)
+    content = Column(Text)  # Contenu Markdown
+    order = Column(Integer, default=0)
+    duration = Column(String(20))  # ex: "15 min"
+    
+    course = relationship("Course", back_populates="lessons")
+
+class Quiz(Base):
+    """Quizz associés aux cours."""
+    __tablename__ = 'quizzes'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    course_id = Column(Integer, ForeignKey('courses.id'), nullable=False)
+    title = Column(String(200), nullable=False)
+    description = Column(Text)
+    
+    course = relationship("Course", back_populates="quizzes")
+    questions = relationship("Question", back_populates="quiz")
+
+class Question(Base):
+    """Questions des quizz."""
+    __tablename__ = 'questions'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    quiz_id = Column(Integer, ForeignKey('quizzes.id'), nullable=False)
+    text = Column(Text, nullable=False)
+    explanation = Column(Text)
+    
+    quiz = relationship("Quiz", back_populates="questions")
+    options = relationship("Option", back_populates="question")
+
+class Option(Base):
+    """Options de réponse pour les questions."""
+    __tablename__ = 'options'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    question_id = Column(Integer, ForeignKey('questions.id'), nullable=False)
+    text = Column(String(255), nullable=False)
+    is_correct = Column(Boolean, default=False)
+    
+    question = relationship("Question", back_populates="options")
+
+class UserProgress(Base):
+    """Progression des utilisateurs dans les cours éducatifs."""
+    __tablename__ = 'user_progress'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=True, index=True)
+    quiz_id = Column(Integer, ForeignKey('quizzes.id'), nullable=True, index=True)
+    completed = Column(Boolean, default=False)
+    score = Column(Float, nullable=True)  # Pour les quizz
+    completed_at = Column(DateTime, default=func.now())
+    
+    user = relationship("User", back_populates="progress")
+
+class AccountHistory(Base):
+    """Historique du solde pour graphique de performance."""
+    __tablename__ = 'account_history'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False, index=True)
+    balance = Column(Float, nullable=False)
+    equity = Column(Float)
+    timestamp = Column(DateTime, default=func.now(), index=True)
+    
+    account = relationship("Account")
+
 class Symbol(Base):
     """
     Données maîtresses des symboles.
@@ -121,7 +229,7 @@ class Signal(Base):
     source = Column(String(50), default='system')
 
     # JSON pour données supplémentaires
-    metadata = Column(Text)  # JSON string
+    meta_data = Column(Text)  # JSON string
 
     created_at = Column(DateTime, default=func.now())
 
@@ -144,8 +252,12 @@ class Trade(Base):
     __tablename__ = 'trades'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False, index=True)
     symbol_id = Column(Integer, ForeignKey('symbols.id'), nullable=False, index=True)
     signal_id = Column(Integer, ForeignKey('signals.id'), nullable=True)
+    
+    # Relations
+    account = relationship("Account")
 
     # Détails du trade
     side = Column(String(10), nullable=False)  # 'BUY', 'SELL'
@@ -368,3 +480,37 @@ def get_or_create_symbol(session, symbol: str, **kwargs) -> Symbol:
         session.add(symbol_obj)
         session.commit()
     return symbol_obj
+class TradingJournal(Base):
+    """Journal de trading pour noter les émotions et contextes."""
+    __tablename__ = 'trading_journal'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    trade_id = Column(Integer, ForeignKey('trades.id'), nullable=True)
+    timestamp = Column(DateTime, default=func.now())
+    mood = Column(String(50))  # Happy, Stressed, Neutral...
+    strategy_name = Column(String(100))
+    notes = Column(Text)
+    lessons_learned = Column(Text)
+    image_url = Column(String(255))
+
+    user = relationship("User")
+    trade = relationship("Trade")
+
+class BacktestRun(Base):
+    """Résultats des exécutions de backtesting."""
+    __tablename__ = 'backtest_runs'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False)
+    timeframe = Column(String(10))
+    start_date = Column(DateTime)
+    end_date = Column(DateTime)
+    strategy_config = Column(Text)  # JSON
+    total_trades = Column(Integer)
+    win_rate = Column(Float)
+    profit_factor = Column(Float)
+    max_drawdown = Column(Float)
+    net_profit = Column(Float)
+    report_json = Column(Text)  # Detailed stats
+
+    user = relationship("User")

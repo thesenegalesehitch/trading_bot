@@ -217,6 +217,33 @@ class WyckoffAnalyzer:
         
         return vsa
     
+    def _analyze_volume_spread(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Alias / version simplifiée pour compatibilité avec les tests.
+        Retourne Spread, Volume_MA et VSA_Signal.
+        """
+        vsa = self._volume_spread_analysis(df)
+        result = pd.DataFrame(index=df.index)
+        
+        result['Spread'] = vsa['spread']
+        result['Volume_MA'] = df['Volume'].rolling(20).mean() if 'Volume' in df.columns else 1
+        
+        signals = []
+        for i in range(len(vsa)):
+            if vsa['climax'].iloc[i]:
+                signals.append('CLIMAX')
+            elif vsa['stopping_volume'].iloc[i]:
+                signals.append('STOPPING_VOLUME')
+            elif vsa['no_demand'].iloc[i]:
+                signals.append('NO_DEMAND')
+            elif vsa['no_supply'].iloc[i]:
+                signals.append('NO_SUPPLY')
+            else:
+                signals.append('NEUTRAL')
+                
+        result['VSA_Signal'] = signals
+        return result
+    
     def _detect_events(
         self,
         df: pd.DataFrame,

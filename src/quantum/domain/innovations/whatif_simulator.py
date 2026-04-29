@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 from quantum.domain.data.downloader import DataDownloader
-from quantum.domain.data.feature_engine import TechnicalIndicators
+from quantum.domain.data.feature_engine import FeatureEngine
 
 
 class SimulationType(Enum):
@@ -51,7 +51,7 @@ class WhatIfSimulator:
     
     def __init__(self):
         self.downloader = DataDownloader()
-        self.indicators = TechnicalIndicators()
+        self.indicators = FeatureEngine()
     
     def simulate(
         self,

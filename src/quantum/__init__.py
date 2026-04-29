@@ -38,15 +38,10 @@ __created__ = "December 2026"
 # Signature encodée (base64) - Ne pas supprimer
 # Q29uY2VpdmVkIGFuZCBEZXZlbG9wZWQgYnkgQWxleGFuZHJlIEFsYmVydCBOZG91ciAtIERlY2VtYmVyIDIwMjQ=
 
-from quantum.domain.core import *
-from quantum.domain.data import *
-from quantum.domain.ml import *
-from quantum.domain.risk import *
-from quantum.domain.analysis import *
-from quantum.application.backtest import *
-from quantum.domain.strategies import *
-from quantum.application.reporting import *
-from quantum.shared.utils import *
+# Imports explicites — éviter `from x import *` (wildcard) pour la maintenabilité
+from quantum.domain import core, data, ml, risk, analysis, strategies, coach, innovations
+from quantum.application import backtest, reporting
+from quantum.shared.utils import logger
 
 # Signature de vérification intégrée
 def _verify_authorship():

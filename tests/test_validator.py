@@ -29,11 +29,12 @@ class TestDataValidator:
         n = 100
         dates = pd.date_range('2024-01-01', periods=n, freq='1h')
         close = 100 + np.cumsum(np.random.randn(n) * 0.5)
+        open_p = close + np.random.randn(n) * 0.1
         
         return pd.DataFrame({
-            'Open': close + np.random.randn(n) * 0.2,
-            'High': close + abs(np.random.randn(n)) * 0.5 + 0.1,
-            'Low': close - abs(np.random.randn(n)) * 0.5 - 0.1,
+            'Open': open_p,
+            'High': np.maximum(open_p, close) + abs(np.random.randn(n)) * 0.5 + 0.1,
+            'Low': np.minimum(open_p, close) - abs(np.random.randn(n)) * 0.5 - 0.1,
             'Close': close,
             'Volume': np.random.randint(1000, 10000, n)
         }, index=dates)

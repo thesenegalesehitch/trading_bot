@@ -275,8 +275,8 @@ class TestRiskMetricsReliability:
         
         returns = np.random.normal(0, 0.02, 1000)
         
-        var_95 = -np.percentile(95)
-        cvar_95 = -returns[returns < -var_95].mean()
+        var_95 = -np.percentile(returns, 5)
+        cvar_95 = -returns[returns <= -var_95].mean()
         
         assert cvar_95 > var_95, "CVaR should exceed VaR"
 
