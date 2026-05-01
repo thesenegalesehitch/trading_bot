@@ -1,10 +1,9 @@
 """
-Module mathématique et statistique du système de trading.
-Contient les analyses de co-intégration, Hurst et Z-Score.
+Module mathématique du système de trading.
+Contient le détecteur de régime et le scorer.
 """
 
-from .cointegration import CointegrationAnalyzer
-from .hurst import HurstExponent
-from .zscore import BollingerZScore
+from .regime_detector import RegimeDetector
+from .scorer import Scorer
 
-__all__ = ["CointegrationAnalyzer", "HurstExponent", "BollingerZScore"]
+__all__ = ["RegimeDetector", "Scorer"]

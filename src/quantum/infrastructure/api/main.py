@@ -8,50 +8,40 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
 from quantum.infrastructure.db.session import init_db, close_db
 from quantum.infrastructure.api.routers import auth, market, analysis, trading, risk, academy, backtest, journal
 from quantum.shared.config.settings import config
 
-# Configuration du Rate Limiter
-limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Démarrage
     logger.info("Démarrage du système: Initialisation DB...")
     await init_db()
     yield
-    # Arrêt
     logger.info("Arrêt du système: Fermeture connexions DB...")
     await close_db()
 
 
 app = FastAPI(
     title="Quantum Trading System API",
-    description="API REST sécurisée pour la plateforme de trading quantitatif.",
-    version="2.0.0",
+    description="API REST pour la plateforme éducative de trading ICT/SMC.",
+    version="3.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan
 )
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Configuration CORS restrictive
+# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Uniquement le frontend local par défaut
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
-# Inclusion des routeurs métier
+# Routeurs métier
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentification"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["Données Marché"])
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analyse Technique"])
@@ -65,18 +55,17 @@ app.include_router(journal.router, prefix="/api/v1/journal", tags=["Journal de T
 async def root():
     return {
         "status": "online",
-        "message": "Quantum Trading System API v2.0 - Plateforme Référence"
+        "message": "Quantum Trading System API v3.0 — Plateforme Éducative"
     }
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    logger.error(f"Erreur serveur globale: {exc}")
+    logger.error(f"Erreur serveur: {exc}")
     return JSONResponse(
         status_code=500,
         content={
             "success": False, 
-            "message": "Une erreur interne est survenue. Veuillez contacter le support.",
-            # En production, on ne renvoie pas 'detail' pour éviter les fuites d'info
+            "message": "Une erreur interne est survenue.",
             "detail": str(exc) if config.system.MODE == "dev" else None 
         }
     )

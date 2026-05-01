@@ -12,33 +12,49 @@ export default function BacktestPage() {
       <main className="flex-1 p-8 overflow-y-auto">
         <h1 className="text-3xl font-bold mb-8">Moteur de Backtesting</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="md:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <Card className="lg:col-span-1 border-primary/20">
                 <CardHeader>
                     <CardTitle>Configuration</CardTitle>
-                    <CardDescription>Définissez vos paramètres de test.</CardDescription>
+                    <CardDescription>Paramétrez votre test historique.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
-                        <p className="text-sm font-bold">Symbole: BTC-USD</p>
-                        <p className="text-sm">Timeframe: 1h</p>
-                        <p className="text-sm">Période: 2024-01-01 -> 2024-04-29</p>
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">Actif</label>
+                        <select className="w-full p-2 rounded-md border bg-background">
+                            <option>BTC-USD</option>
+                            <option>EURUSD=X</option>
+                            <option>AAPL</option>
+                        </select>
                     </div>
-                    <Button className="w-full">
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">Période</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <input type="date" className="p-2 rounded-md border bg-background text-xs" defaultValue="2024-01-01" />
+                            <input type="date" className="p-2 rounded-md border bg-background text-xs" defaultValue="2024-04-30" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium uppercase text-muted-foreground">Capital Initial</label>
+                        <input type="number" className="w-full p-2 rounded-md border bg-background" defaultValue="10000" />
+                    </div>
+                    <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                         <Play className="w-4 h-4 mr-2" />
                         Lancer le Backtest
                     </Button>
                 </CardContent>
             </Card>
 
-            <Card className="md:col-span-2">
+            <Card className="lg:col-span-3">
                 <CardHeader>
-                    <CardTitle>Historique des Runs</CardTitle>
+                    <CardTitle>Rapport de Performance</CardTitle>
+                    <CardDescription>Analyse détaillée des trades passés.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
-                        <History className="w-12 h-12 mb-4 opacity-20" />
-                        <p>Aucun backtest enregistré.</p>
+                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border-2 border-dashed rounded-xl bg-muted/5">
+                        <History className="w-16 h-16 mb-4 opacity-10" />
+                        <p className="font-medium">Aucun backtest exécuté sur cette période.</p>
+                        <p className="text-xs mt-2">Sélectionnez vos paramètres et cliquez sur "Lancer".</p>
                     </div>
                 </CardContent>
             </Card>

@@ -38,10 +38,18 @@ async def calculate_kelly(req: KellyRequest):
         "suggested_risk": round(max(0, kelly / 2) * 100, 2) # Half-Kelly safe
     }
 
-@router.get("/var-info")
-async def get_var_info():
+@router.post("/simulate-var")
+async def simulate_var(capital: float, volatility: float = 0.02, days: int = 1, iterations: int = 10000):
+    # Simulation Monte Carlo simple: P = P0 * exp((r - 0.5 * sigma^2) * t + sigma * sqrt(t) * Z)
+    # Pour la VaR, on simplifie: returns = sigma * sqrt(t) * Z
+    np.random.seed(42)
+    returns = np.random.normal(0, volatility * np.sqrt(days), iterations)
+    simulated_losses = capital * returns
+    var_95 = np.percentile(simulated_losses, 5)
+    var_99 = np.percentile(simulated_losses, 1)
+    
     return {
-        "description": "La Value at Risk (VaR) mesure la perte potentielle maximale sur un horizon de temps donné avec un niveau de confiance spécifique.",
-        "levels": [0.95, 0.99],
-        "methods": ["Historique", "Paramétrique", "Monte Carlo"]
+        "var_95": round(abs(var_95), 2),
+        "var_99": round(abs(var_99), 2),
+        "worst_case": round(abs(min(simulated_losses)), 2)
     }
