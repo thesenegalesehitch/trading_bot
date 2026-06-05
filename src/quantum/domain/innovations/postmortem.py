@@ -155,7 +155,7 @@ class AutoPostMortem:
                 
                 if trade.direction == "BUY":
                     if last_rsi < 40:
-                        result['good'].append(f"RSI OK: Entry avec RSI={last_r:.1f} (zone opportunité)")
+                        result['good'].append(f"RSI OK: Entry avec RSI={last_rsi:.1f} (zone opportunité)")
                     elif last_rsi > 70:
                         result['failed'].append(f"RSI trop haut: {last_rsi:.1f} (suracheté)")
                         result['lessons'].append("Éviter les achats quand RSI > 70")

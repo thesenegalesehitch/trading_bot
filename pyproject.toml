@@ -42,7 +42,7 @@ dependencies = [
     "requests>=2.32.3",
     
     # Technical Analysis
-    "pandas-ta>=0.3.14b",
+    "pandas-ta",
     
     # Machine Learning
     "scikit-learn>=1.6.0",
